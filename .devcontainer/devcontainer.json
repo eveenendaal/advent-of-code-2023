@@ -1,0 +1,25 @@
+{
+    "build": {
+      "dockerfile": "Dockerfile"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/go:1": {
+            "version": "1.21.1"
+        },
+        "ghcr.io/devcontainers/features/rust:1": {}
+    },
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "GitHub.copilot",
+          "1YiB.rust-bundle"
+        ]
+      }
+    },
+    "hostRequirements": {
+      "cpus": 2,
+      "memory": "4gb",
+      "storage": "32gb"
+    }
+  }
+  
