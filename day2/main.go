@@ -17,6 +17,8 @@ func main() {
 	defer file.Close()
 
 	total := 0
+	totalPower := 0
+
 	maxRed := 12
 	maxBlue := 14
 	maxGreen := 13
@@ -36,13 +38,14 @@ func main() {
 		if possible {
 			total += game.number
 		}
+		totalPower += game.power
 	}
 
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("Total: %d\n", total)
+	fmt.Printf("Total: %d Power: %d\n", total, totalPower)
 }
 
 // Create Round struct
@@ -53,8 +56,12 @@ type Round struct {
 }
 
 type Game struct {
-	rounds []Round
-	number int
+	rounds   []Round
+	number   int
+	maxRed   int
+	maxBlue  int
+	maxGreen int
+	power    int
 }
 
 func processLine(line string) Game {
@@ -70,6 +77,10 @@ func processLine(line string) Game {
 	// Convert ot int
 	gameNumber, _ := strconv.Atoi(gameNumberString)
 	fmt.Printf("Game Number: %d\n", gameNumber)
+
+	maxRed := 0
+	maxBlue := 0
+	maxGreen := 0
 
 	rounds := strings.Split(parts[1], ";")
 	for _, round := range rounds {
@@ -92,14 +103,23 @@ func processLine(line string) Game {
 			if strings.Contains(next, "red") {
 				// create new Round struct
 				roundData.red = count
+				if count > maxRed {
+					maxRed = count
+				}
 			}
 			if strings.Contains(next, "blue") {
 				// create new Round struct
 				roundData.blue = count
+				if count > maxBlue {
+					maxBlue = count
+				}
 			}
 			if strings.Contains(next, "green") {
 				// create new Round struct
 				roundData.green = count
+				if count > maxGreen {
+					maxGreen = count
+				}
 			}
 		}
 
@@ -108,7 +128,11 @@ func processLine(line string) Game {
 	}
 
 	return Game{
-		rounds: results,
-		number: gameNumber,
+		rounds:   results,
+		number:   gameNumber,
+		maxRed:   maxRed,
+		maxBlue:  maxBlue,
+		maxGreen: maxGreen,
+		power:    maxRed * maxBlue * maxGreen,
 	}
 }
