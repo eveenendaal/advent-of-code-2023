@@ -1,7 +1,7 @@
 fn part1() {
     let mut total: i128 = 0;
     // Read in the test.txt file
-    let input = std::fs::read_to_string("data1.txt").unwrap();
+    let input = std::fs::read_to_string("data.txt").unwrap();
     // Iterate over each line
     for line in input.lines() {
         // replace all letters with a |
@@ -36,57 +36,110 @@ fn part1() {
 }
 
 fn part2() {
+    // Create struct with string and i128
+    struct Number {
+        string: String,
+        number: i128,
+    }
+
     let mut total: i128 = 0;
     // Read in the test.txt file
-    let input = std::fs::read_to_string("test2.txt").unwrap();
-    // list of number words
-    let numbers = vec!["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+    let input = std::fs::read_to_string("data.txt").unwrap();
+    // Create vector of Number structs
+    let mut numbers: Vec<Number> = Vec::new();
+    // Populate with numbers 0-9
+    for i in 1..10 {
+        numbers.push(Number {
+            string: format!("{}", i),
+            number: i,
+        });
+    }
+    numbers.push(Number {
+        string: "one".to_string(),
+        number: 1,
+    }); 
+    numbers.push(Number {
+        string: "two".to_string(),
+        number: 2,
+    });
+    numbers.push(Number {
+        string: "three".to_string(),
+        number: 3,
+    });
+    numbers.push(Number {
+        string: "four".to_string(),
+        number: 4,
+    });
+    numbers.push(Number {
+        string: "five".to_string(),
+        number: 5,
+    });
+    numbers.push(Number {
+        string: "six".to_string(),
+        number: 6,
+    });
+    numbers.push(Number {
+        string: "seven".to_string(),
+        number: 7,
+    });
+    numbers.push(Number {
+        string: "eight".to_string(),
+        number: 8,
+    });
+    numbers.push(Number {
+        string: "nine".to_string(),
+        number: 9,
+    });
 
     // Iterate over each line
     for line in input.lines() {
-        // find the first number in the line
-        let mut first_position = line.find(char::is_numeric).unwrap();
-        // get character
-        let mut first = &line[first_position..first_position + 1];
+        // set first_position to max
+        let mut first_position = line.len() + 1;
+        // set last_position to min
+        let mut last_position = 0;
 
-        // find the last number in the line
-        let mut last_position = line.rfind(char::is_numeric).unwrap();
-        // get character
-        let mut last = &line[last_position..last_position + 1];
+        let mut first = &Number {
+            string: "".to_string(),
+            number: 0,
+        };
+        let mut last = &Number {
+            string: "".to_string(),
+            number: 0,
+        };
 
-        let mut value: String = "".to_string();
-
-        // iterate over each number words
-        for number in numbers.clone() {
-            // get position of number
-            let value = line.find(number).unwrap();
-            // convert usize to string slice
-            let value = format!("{}", value);
-            
-            // find first word in line
-            let next = line.find(number);
-            // if next is found
-            if next.is_some() {
-                let next = next.unwrap();
-                // if next before first_position, set first_position to next
-                if next < first_position {
-                    first_position = next;
-                    // copy value to first
-                    first = value;
-                }
+        // iterate over each number in the number vector
+        for number in &numbers {
+            // get the position of the number
+            let first_location = line.find(&number.string);
+            let last_location = line.rfind(&number.string);
+            // if the number is not in the line, skip it
+            if first_location == None {
+                continue;
             }
-            
-
-            // find last instance in line
-            let last = line.rfind(number);
+            // if the position is less than first_position, set first_position to position
+            if first_location.unwrap() <= first_position {
+                first_position = first_location.unwrap();
+                first = number;
+            }
+            // if the position is greater than last_position, set last_position to position
+            if last_location.unwrap() >= last_position {
+                last_position = last_location.unwrap();
+                last = number;
+            }
         }
 
         // concat first and last and convert to int
-        let next: i128 = format!("{}{}", first, last).parse::<i128>().unwrap();
+        let next: i128 = format!("{}{}", first.number, last.number).parse::<i128>().unwrap();
         // print next
-        println!("next: {}", next);
+        println!("next: {} - {} {} - {}", next, first.string, last.string, line);
         // add to total
         total += next;
+
+        // stop if number not found
+        if first.string == "" || last.string == "" {
+            println!("number not found");
+            break;
+        }
     }
     // print total
     println!("total: {}", total);
