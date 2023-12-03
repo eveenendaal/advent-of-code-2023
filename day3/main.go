@@ -3,12 +3,16 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
+	"strconv"
+	"unicode"
 )
 
 type Point struct {
-	x int
-	y int
+	x     int
+	y     int
+	value string
 }
 
 type Number struct {
@@ -26,7 +30,9 @@ func Part1(filePath string) {
 	defer f.Close()
 
 	y := 0
+	total := 0
 	symbols := make([]Point, 0)
+	numberPoints := make([]Point, 0)
 	symbolChars := []string{"#", "*", "$", "+"}
 
 	// Scan file and finding symbols
@@ -45,6 +51,32 @@ func Part1(filePath string) {
 
 		}
 
+		for x, c := range line {
+			// If a "." is found reset the numberPoints and store the number unless there are no points
+			if unicode.IsDigit(c) == false {
+				if len(numberPoints) > 0 {
+					// Concat the numberPoints into a number
+					numberString := ""
+					for _, point := range numberPoints {
+						numberString = numberString + point.value
+					}
+					// convert numberString to an int
+					number, _ := strconv.Atoi(numberString)
+					if checkDistance(numberPoints, symbols) {
+						// Add number to total
+						total += number
+					}
+
+					// Clear numberPoints
+					numberPoints = make([]Point, 0)
+				}
+			} else {
+				// add point to numberPoints
+				numberPoints = append(numberPoints, Point{x: x, y: y, value: string(c)})
+			}
+
+		}
+
 		y = y + 1
 	}
 
@@ -52,6 +84,27 @@ func Part1(filePath string) {
 	for _, symbol := range symbols {
 		fmt.Printf("Symbol: %v\n", symbol)
 	}
+
+	// Print total
+	fmt.Printf("Total: %v\n", total)
+}
+
+func checkDistance(points []Point, symbols []Point) bool {
+	touching := false
+	// Iterate through points
+	for _, point := range points {
+		// Iterate through symbols
+		for _, symbol := range symbols {
+			// Calculate distance
+			distanceX := math.Abs(float64(point.x) - float64(symbol.x))
+			distanceY := math.Abs(float64(point.y) - float64(symbol.y))
+			// If distance is 1 or less, set touching to true
+			if (distanceX+distanceY) == 1 || (distanceX == 1 && distanceY == 1) {
+				touching = true
+			}
+		}
+	}
+	return touching
 
 }
 
