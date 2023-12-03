@@ -20,8 +20,7 @@ type Number struct {
 	points []Point
 }
 
-// Part1 is the solution to day3 part 1
-func Part1(filePath string) {
+func findSymbols(filePath string) []Point {
 	// Open File
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -30,10 +29,7 @@ func Part1(filePath string) {
 	defer f.Close()
 
 	y := 0
-	total := 0
 	symbols := make([]Point, 0)
-	numberPoints := make([]Point, 0)
-	symbolChars := []string{"#", "*", "$", "+"}
 
 	// Scan file and finding symbols
 	scanner := bufio.NewScanner(f)
@@ -43,13 +39,36 @@ func Part1(filePath string) {
 		// Find Symbols
 		for x, c := range line {
 			// If a symbol is found, add it to the map
-			for _, symbolChar := range symbolChars {
-				if string(c) == symbolChar {
-					symbols = append(symbols, Point{x: x, y: y})
-				}
+			if unicode.IsDigit(c) == false && string(c) != "." {
+				symbols = append(symbols, Point{x: x, y: y})
 			}
-
 		}
+
+		y = y + 1
+	}
+
+	return symbols
+}
+
+// Part1 is the solution to day3 part 1
+func Part1(filePath string) {
+	symbols := findSymbols(filePath)
+
+	// Open File
+	f, err := os.Open(filePath)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	y := 0
+	total := 0
+	numberPoints := make([]Point, 0)
+
+	// Scan file and finding numbers
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
 
 		for x, c := range line {
 			// If a "." is found reset the numberPoints and store the number unless there are no points
@@ -80,11 +99,6 @@ func Part1(filePath string) {
 		y = y + 1
 	}
 
-	// Print out symbols
-	for _, symbol := range symbols {
-		fmt.Printf("Symbol: %v\n", symbol)
-	}
-
 	// Print total
 	fmt.Printf("Total: %v\n", total)
 }
@@ -98,12 +112,23 @@ func checkDistance(points []Point, symbols []Point) bool {
 			// Calculate distance
 			distanceX := math.Abs(float64(point.x) - float64(symbol.x))
 			distanceY := math.Abs(float64(point.y) - float64(symbol.y))
+			distance := int(math.Max(distanceX, distanceY))
+
+			// Print points and distance
+			// fmt.Printf("Point: %v, Symbol: %v, Distance: %v\n", point, symbol, distance)
+
 			// If distance is 1 or less, set touching to true
-			if (distanceX+distanceY) == 1 || (distanceX == 1 && distanceY == 1) {
+			if distance <= 1 {
 				touching = true
 			}
 		}
 	}
+
+	// If not touching print points
+	if touching == false {
+		fmt.Printf("Points: %v\n", points)
+	}
+
 	return touching
 
 }
