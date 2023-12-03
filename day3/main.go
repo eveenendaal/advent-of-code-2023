@@ -40,7 +40,7 @@ func findSymbols(filePath string) []Point {
 		for x, c := range line {
 			// If a symbol is found, add it to the map
 			if unicode.IsDigit(c) == false && string(c) != "." {
-				symbols = append(symbols, Point{x: x, y: y})
+				symbols = append(symbols, Point{x: x, y: y, value: string(c)})
 			}
 		}
 
@@ -100,7 +100,89 @@ func Part1(filePath string) {
 	}
 
 	// Print total
-	fmt.Printf("Total: %v\n", total)
+	fmt.Printf("Part 1 Total: %v\n", total)
+}
+
+func findGears(filePath string) []Point {
+	symbols := findSymbols(filePath)
+	gears := make([]Point, 0)
+	// Filter to just "*" symbols
+	for _, symbol := range symbols {
+		if symbol.value == "*" {
+			// Find points that are touching the symbol
+			gears = append(gears, symbol)
+		}
+	}
+	return gears
+}
+
+func findNumbersByGear(gear Point, filePath string) []int {
+	// Open File
+	f, err := os.Open(filePath)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	numberPoints := make([]Point, 0)
+	numbers := make([]int, 0)
+	y := 0
+
+	// gear into a slice
+	gears := make([]Point, 0)
+	gears = append(gears, gear)
+
+	// Scan file and finding numbers
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		for x, c := range line {
+			// If a "." is found reset the numberPoints and store the number unless there are no points
+			if unicode.IsDigit(c) == false {
+				if len(numberPoints) > 0 {
+					// Concat the numberPoints into a number
+					numberString := ""
+					for _, point := range numberPoints {
+						numberString = numberString + point.value
+					}
+					// convert numberString to an int
+					number, _ := strconv.Atoi(numberString)
+					if checkDistance(numberPoints, gears) {
+						// Add number to total
+						numbers = append(numbers, number)
+					}
+
+					// Clear numberPoints
+					numberPoints = make([]Point, 0)
+				}
+			} else {
+				// add point to numberPoints
+				numberPoints = append(numberPoints, Point{x: x, y: y, value: string(c)})
+			}
+
+		}
+
+		y = y + 1
+	}
+
+	fmt.Printf("Numbers: %v\n", numbers)
+	return numbers
+}
+
+func Part2(filePath string) {
+	gears := findGears(filePath)
+	total := 0
+	for _, gear := range gears {
+		numbers := findNumbersByGear(gear, filePath)
+		if len(numbers) == 2 { // If there are two numbers, multiply them
+			total += numbers[0] * numbers[1]
+		}
+	}
+
+	// Print symbols
+	fmt.Printf("Gears: %v\n", gears)
+	fmt.Printf("Part 2 Total: %v\n", total)
 }
 
 func checkDistance(points []Point, symbols []Point) bool {
@@ -124,10 +206,10 @@ func checkDistance(points []Point, symbols []Point) bool {
 		}
 	}
 
-	// If not touching print points
-	if touching == false {
-		fmt.Printf("Points: %v\n", points)
-	}
+	// // If not touching print points
+	// if touching == false {
+	// 	fmt.Printf("Points: %v\n", points)
+	// }
 
 	return touching
 
@@ -135,6 +217,7 @@ func checkDistance(points []Point, symbols []Point) bool {
 
 func main() {
 	filePath := "data.txt"
-	Part1(filePath)
+	//Part1(filePath)
+	Part2(filePath)
 
 }
