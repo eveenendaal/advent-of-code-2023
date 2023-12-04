@@ -54,7 +54,11 @@ func processLine(line string) int {
 	// split the second part by the "|"
 	input := strings.Split(parts[1], "|")
 
-	// trim the first part of input and split on " "
+	// replace all the double spaces with single spaces
+	input[0] = strings.Replace(input[0], "  ", " ", -1)
+	input[1] = strings.Replace(input[1], "  ", " ", -1)
+
+	// trim the first part of input and split on spaces
 	winningNumbersStrings := strings.Split(strings.TrimSpace(input[0]), " ")
 	foundNumbersString := strings.Split(strings.TrimSpace(input[1]), " ")
 
