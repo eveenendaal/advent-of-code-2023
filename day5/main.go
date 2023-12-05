@@ -19,9 +19,15 @@ type Step struct {
 	RangeMaps []RangeMap
 }
 
+type SeedPair struct {
+	start int
+	stop  int
+}
+
 // Step List
 var Steps []Step = make([]Step, 50)
 var Seeds []int = make([]int, 0)
+var SeedPairs []SeedPair = make([]SeedPair, 0)
 
 // Handle Step
 func HandleStep(step Step, seed int) int {
@@ -37,8 +43,7 @@ func HandleStep(step Step, seed int) int {
 		if seed >= min && seed <= max {
 			// Calculate the output
 			output = minTarget + diff
-			fmt.Printf("Seed: %d, Min: %d, Max: %d, Diff: %d, MinTarget: %d, Output: %d\n", seed, min, max, diff, minTarget, output)
-
+			//fmt.Printf("Seed: %d, Min: %d, Max: %d, Diff: %d, MinTarget: %d, Output: %d\n", seed, min, max, diff, minTarget, output)
 			break
 		}
 	}
@@ -133,6 +138,95 @@ func Part1(filePath string) {
 	}
 }
 
+// Create a function to parse the input file
+func Part2(filePath string) {
+	// Open the file
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return
+	}
+	defer file.Close()
+
+	// Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(file)
+
+	stepCounter := 0
+
+	// Read line by line
+	for scanner.Scan() {
+		line := scanner.Text()
+		// fmt.Println(line)
+		// fmt.Printf("Step Counter: %d\n", stepCounter)
+
+		// If line contains ":" then it's a step
+		if strings.Contains(line, ":") {
+			// Parse the step
+			if stepCounter == 0 {
+				// Split on :
+				parts := strings.Split(line, ":")
+				// Get part 2, trim spaces, and split on space
+				seeds := strings.Split(strings.TrimSpace(parts[1]), " ")
+				seedPair := make([]int, 0)
+				// Convert to int and store in Seeds
+				for _, seed := range seeds {
+					seed, _ := strconv.Atoi(seed)
+					seedPair = append(seedPair, seed)
+					fmt.Printf("Seed: %d, Pair:%v\n", seed, seedPair)
+					if len(seedPair) == 2 {
+						start := seedPair[0]
+						end := seedPair[0] + seedPair[1]
+						SeedPairs = append(SeedPairs, SeedPair{start, end})
+						fmt.Printf("Seed Pair: %v\n", seedPair)
+						// Create a range with the two seeds
+						seedPair = make([]int, 0)
+					}
+				}
+			}
+			stepCounter += 1
+			Steps = append(Steps, Step{})
+		} else if len(line) > 0 {
+			// split on " "
+			parts := strings.Split(line, " ")
+			fmt.Printf("Parts: %v, %d\n", parts, len(parts))
+
+			start, _ := strconv.Atoi(parts[1])
+			end, _ := strconv.Atoi(parts[0])
+			size, _ := strconv.Atoi(parts[2])
+
+			// Create a RangeMap
+			rangeMap := RangeMap{
+				SourceMin: start,
+				TargetMin: end,
+				Size:      size,
+			}
+			Steps[stepCounter].RangeMaps = append(Steps[stepCounter].RangeMaps, rangeMap)
+		}
+	}
+
+	// Print out seeds
+	fmt.Println(Seeds)
+	// Print out converters
+	//fmt.Println(Steps)
+	// Print out the output
+	minOutput := math.MaxInt
+	for _, seedPair := range SeedPairs {
+		fmt.Printf("Seed Pair: %v\n", seedPair)
+		for seed := seedPair.start; seed <= seedPair.stop; seed++ {
+			output := HandleSeed(seed)
+			if output < minOutput {
+				minOutput = output
+			}
+		}
+	}
+	fmt.Println("Min Output:", minOutput)
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading file:", err)
+	}
+}
+
 func main() {
-	Part1("data.txt")
+	//Part1("data.txt")
+	Part2("data.txt")
 }
