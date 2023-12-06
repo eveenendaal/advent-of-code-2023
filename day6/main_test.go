@@ -11,5 +11,9 @@ func TestPart1(t *testing.T) {
 }
 
 func TestPart2(t *testing.T) {
-	// TODO: Write test cases for main function
+	result := Part2("test.txt")
+	// assert the result is 288
+	if result != 71503 {
+		t.Errorf("Expected 71503, got %d", result)
+	}
 }
