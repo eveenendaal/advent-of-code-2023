@@ -29,6 +29,7 @@ func Part1(filePath string) int {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.ToLower(scanner.Text())
+
 		// If lines starts with "time:"
 		if line[0:5] == "time:" {
 			// Split line by spaces
@@ -53,14 +54,26 @@ func Part1(filePath string) int {
 		}
 	}
 
-	output := 0
+	output := 1
 
 	// iterate over races
 	for _, race := range races {
 		fmt.Println(race)
+		winningSpeeds := 0
 		// calculate the speed
-
+		for i := 0; i <= race.time; i++ {
+			speed := i
+			time := race.time - speed
+			// calculate the distance
+			distance := speed * time
+			if distance > race.distance {
+				winningSpeeds++
+			}
+		}
+		output *= winningSpeeds
 	}
+
+	//
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading file:", err)
