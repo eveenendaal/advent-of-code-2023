@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -18,54 +17,61 @@ func (c Card) Score() int {
 	// return the score of the card
 	switch c {
 	case "A":
-		return 12
+		return 14
 	case "K":
-		return 11
+		return 13
 	case "Q":
-		return 10
+		return 12
 	case "J":
-		return 9
+		return 11
 	case "T":
-		return 8
-	case "9":
-	case "8":
-	case "7":
-	case "6":
-	case "5":
-	case "4":
-	case "3":
-	case "2":
+		return 10
+	default:
 		value, _ := strconv.Atoi(string(c))
-		return value - 2
+		return value
 	}
-	return -1
 }
 
 // Create a hand struct
 type Hand struct {
-	cards []Card
-	bid   int
+	cards  []Card
+	bid    int
+	source string
 }
 
-func (h Hand) Score() int {
+type Score struct {
+	values      []int
+	max         int
+	secondMax   int
+	counts      map[Card]int
+	bid         int
+	cards       []Card
+	cardsString string
+}
+
+func (h Hand) Score() Score {
 	// return the score of the hand
-	rankScore := 0
+	score := []int{}
+
 	handScore := 0
 
 	// count all the cards
-	cardCount := map[Card]int{}
+	cardCount := make(map[Card]int, 13)
 	for _, card := range h.cards {
 		cardCount[card]++
 	}
 
-	// check the max number of cards
-	max := 0
-	secondMax := 0
+	// Get card count values
+	counts := []int{}
 	for _, count := range cardCount {
-		if count >= max {
-			secondMax = max
-			max = count
-		}
+		counts = append(counts, count)
+	}
+	sort.Ints(counts)
+	// Get Maxes
+	max := counts[len(counts)-1]
+	secondMax := max
+	if len(counts) > 1 {
+		secondMax = counts[len(counts)-2]
 	}
 
 	if max == 5 {
@@ -82,14 +88,22 @@ func (h Hand) Score() int {
 		handScore = 1
 	}
 
-	// check for four of a kind : are four of the five cards the same value
-	rankScore += h.cards[0].Score() * int(math.Pow(12, 5))
-	rankScore += h.cards[1].Score() * int(math.Pow(12, 4))
-	rankScore += h.cards[2].Score() * int(math.Pow(12, 3))
-	rankScore += h.cards[3].Score() * int(math.Pow(12, 2))
-	rankScore += h.cards[4].Score() * int(math.Pow(12, 1))
+	score = append(score, handScore)
+	score = append(score, h.cards[0].Score())
+	score = append(score, h.cards[1].Score())
+	score = append(score, h.cards[2].Score())
+	score = append(score, h.cards[3].Score())
+	score = append(score, h.cards[4].Score())
 
-	return (handScore * int(math.Pow(12, 6))) + rankScore
+	return Score{
+		bid:         h.bid,
+		values:      score,
+		max:         max,
+		secondMax:   secondMax,
+		counts:      cardCount,
+		cards:       h.cards,
+		cardsString: h.source,
+	}
 }
 
 func Part1(filePath string) int {
@@ -121,24 +135,38 @@ func Part1(filePath string) int {
 		}
 		// create hand
 		hand := Hand{
-			cards: cards,
-			bid:   bid,
+			cards:  cards,
+			bid:    bid,
+			source: cardsString,
 		}
 		// add hand to hands
 		hands = append(hands, hand)
 	}
 
+	scores := []Score{}
+	for _, hand := range hands {
+		scores = append(scores, hand.Score())
+	}
+
 	// sort hands by score
-	sort.Slice(hands, func(i, j int) bool {
-		return hands[i].Score() < hands[j].Score()
+	sort.Slice(scores, func(i, j int) bool {
+		for k := range scores[i].values {
+			if scores[i].values[k] != scores[j].values[k] {
+				return scores[i].values[k] < scores[j].values[k]
+			}
+		}
+		return false
 	})
 
-	rank := 1
+	// write to output.txt for pat 1
+	f, _ := os.Create("output1.txt")
+	defer f.Close()
+
 	output := 0
-	for _, hand := range hands {
-		fmt.Printf("Hand: %v, Score: %d, Rank: %d\n", hand, hand.Score(), rank)
-		output += rank * hand.bid
-		rank++
+	for i, score := range scores {
+		f.Write([]byte(fmt.Sprintf("%d: %d, %s\n", i+1, score.bid, score.cardsString)))
+		fmt.Printf("%d: %d, %v, %v\n", i+1, score.bid, score, score.cardsString)
+		output += (i + 1) * score.bid
 	}
 
 	if err := scanner.Err(); err != nil {
