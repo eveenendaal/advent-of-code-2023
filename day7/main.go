@@ -13,7 +13,7 @@ import (
 type Card string
 
 // Create constants for cards
-func (c Card) Score() int {
+func (c Card) Score(jokers bool) int {
 	// return the score of the card
 	switch c {
 	case "A":
@@ -23,7 +23,11 @@ func (c Card) Score() int {
 	case "Q":
 		return 12
 	case "J":
-		return 11
+		if jokers {
+			return 1
+		} else {
+			return 11
+		}
 	case "T":
 		return 10
 	default:
@@ -49,7 +53,7 @@ type Score struct {
 	cardsString string
 }
 
-func (h Hand) Score() Score {
+func (h Hand) Score(jokers bool) Score {
 	// return the score of the hand
 	score := []int{}
 
@@ -59,6 +63,12 @@ func (h Hand) Score() Score {
 	cardCount := make(map[Card]int, 13)
 	for _, card := range h.cards {
 		cardCount[card]++
+	}
+	// Get joker count
+	jokerCount := cardCount[Card("J")]
+	// Set jokers to 0
+	if jokers {
+		cardCount[Card("J")] = 0
 	}
 
 	// Get card count values
@@ -74,26 +84,44 @@ func (h Hand) Score() Score {
 		secondMax = counts[len(counts)-2]
 	}
 
-	if max == 5 {
-		handScore = 6
-	} else if max == 4 {
-		handScore = 5
-	} else if max == 3 && secondMax == 2 {
-		handScore = 4
-	} else if max == 3 {
-		handScore = 3
-	} else if max == 2 && secondMax == 2 {
-		handScore = 2
-	} else if max == 2 {
-		handScore = 1
+	if jokers {
+		if (max + jokerCount) == 5 { // 5 of a kind
+			handScore = 6
+		} else if (max + jokerCount) == 4 { // 4 of a kind
+			handScore = 5
+		} else if (max+jokerCount) == 3 && secondMax == 2 { // Full House
+			handScore = 4
+		} else if (max + jokerCount) == 3 { // 3 of a kind
+			handScore = 3
+		} else if max == 2 && (jokerCount+secondMax) == 2 { // 2 pair
+			handScore = 2
+		} else if (max + jokerCount) == 2 { // 1 pair
+			handScore = 1
+		} else { // High Card
+			handScore = 0
+		}
+	} else {
+		if max == 5 {
+			handScore = 6
+		} else if max == 4 {
+			handScore = 5
+		} else if max == 3 && secondMax == 2 {
+			handScore = 4
+		} else if max == 3 {
+			handScore = 3
+		} else if max == 2 && secondMax == 2 {
+			handScore = 2
+		} else if max == 2 {
+			handScore = 1
+		}
 	}
 
 	score = append(score, handScore)
-	score = append(score, h.cards[0].Score())
-	score = append(score, h.cards[1].Score())
-	score = append(score, h.cards[2].Score())
-	score = append(score, h.cards[3].Score())
-	score = append(score, h.cards[4].Score())
+	score = append(score, h.cards[0].Score(jokers))
+	score = append(score, h.cards[1].Score(jokers))
+	score = append(score, h.cards[2].Score(jokers))
+	score = append(score, h.cards[3].Score(jokers))
+	score = append(score, h.cards[4].Score(jokers))
 
 	return Score{
 		bid:         h.bid,
@@ -106,7 +134,7 @@ func (h Hand) Score() Score {
 	}
 }
 
-func Part1(filePath string) int {
+func Solve(filePath string, jokers bool) int {
 	file, err := os.Open(filePath)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
@@ -145,7 +173,7 @@ func Part1(filePath string) int {
 
 	scores := []Score{}
 	for _, hand := range hands {
-		scores = append(scores, hand.Score())
+		scores = append(scores, hand.Score(jokers))
 	}
 
 	// sort hands by score
@@ -177,6 +205,7 @@ func Part1(filePath string) int {
 }
 
 func main() {
-	result := Part1("data.txt")
+	// result := Solve("data.txt", false) // Part 1
+	result := Solve("data.txt", true) // Part 2
 	fmt.Println(result)
 }
