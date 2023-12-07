@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -16,14 +18,15 @@ func (c Card) Score() int {
 	// return the score of the card
 	switch c {
 	case "A":
-		return 13
-	case "K":
 		return 12
-	case "Q":
+	case "K":
 		return 11
-	case "J":
+	case "Q":
 		return 10
-	case "10":
+	case "J":
+		return 9
+	case "T":
+		return 8
 	case "9":
 	case "8":
 	case "7":
@@ -46,9 +49,47 @@ type Hand struct {
 
 func (h Hand) Score() int {
 	// return the score of the hand
-	score := 0
+	rankScore := 0
+	handScore := 0
 
-	return score
+	// count all the cards
+	cardCount := map[Card]int{}
+	for _, card := range h.cards {
+		cardCount[card]++
+	}
+
+	// check the max number of cards
+	max := 0
+	secondMax := 0
+	for _, count := range cardCount {
+		if count >= max {
+			secondMax = max
+			max = count
+		}
+	}
+
+	if max == 5 {
+		handScore = 6
+	} else if max == 4 {
+		handScore = 5
+	} else if max == 3 && secondMax == 2 {
+		handScore = 4
+	} else if max == 3 {
+		handScore = 3
+	} else if max == 2 && secondMax == 2 {
+		handScore = 2
+	} else if max == 2 {
+		handScore = 1
+	}
+
+	// check for four of a kind : are four of the five cards the same value
+	rankScore += h.cards[0].Score() * int(math.Pow(12, 5))
+	rankScore += h.cards[1].Score() * int(math.Pow(12, 4))
+	rankScore += h.cards[2].Score() * int(math.Pow(12, 3))
+	rankScore += h.cards[3].Score() * int(math.Pow(12, 2))
+	rankScore += h.cards[4].Score() * int(math.Pow(12, 1))
+
+	return (handScore * int(math.Pow(12, 6))) + rankScore
 }
 
 func Part1(filePath string) int {
@@ -87,11 +128,18 @@ func Part1(filePath string) int {
 		hands = append(hands, hand)
 	}
 
-	for _, hand := range hands {
-		fmt.Printf("Hand: %v, Score: %d\n", hand, hand.Score())
-	}
+	// sort hands by score
+	sort.Slice(hands, func(i, j int) bool {
+		return hands[i].Score() < hands[j].Score()
+	})
 
+	rank := 1
 	output := 0
+	for _, hand := range hands {
+		fmt.Printf("Hand: %v, Score: %d, Rank: %d\n", hand, hand.Score(), rank)
+		output += rank * hand.bid
+		rank++
+	}
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading file:", err)
@@ -101,5 +149,6 @@ func Part1(filePath string) int {
 }
 
 func main() {
-	Part1("data.txt")
+	result := Part1("data.txt")
+	fmt.Println(result)
 }
