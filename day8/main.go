@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -11,6 +12,12 @@ import (
 type Node struct {
 	Left  string
 	Right string
+}
+
+type Route struct {
+	Start   string
+	Current string
+	Done    bool
 }
 
 func Part1(filePath string) int {
@@ -84,7 +91,105 @@ func Part1(filePath string) int {
 	return totalSteps
 }
 
+func Part2(filePath string) int {
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return -1
+	}
+	defer file.Close()
+
+	counter := 0
+	nodes := make(map[string]Node)
+	instructions := ""
+	routes := []Route{}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println(line)
+
+		if counter == 0 {
+			instructions = line
+		} else if len(line) > 0 {
+			var node, left, right string
+
+			// split on "="
+			parts := strings.Split(line, "=")
+			node = strings.TrimSpace(parts[0])
+			parts = strings.Split(parts[1], ",")
+			// Create regex for non characters
+			re := regexp.MustCompile("[^a-zA-Z0-9]+")
+			// Remove non characters
+			left = re.ReplaceAllString(strings.TrimSpace(parts[0]), "")
+			right = re.ReplaceAllString(strings.TrimSpace(parts[1]), "")
+
+			nodes[node] = Node{left, right}
+
+			// If node ends with a A it is a starting node
+			if strings.HasSuffix(node, "A") {
+				routes = append(routes, Route{node, node, false})
+			}
+		}
+
+		counter++
+	}
+
+	fmt.Printf("Instructions: %s\n", instructions)
+	totalSteps := 0
+
+	// Current node
+	currentStep := 0
+	maxSteps := len(instructions)
+
+	for {
+		totalSteps++
+		nextStep := instructions[currentStep]
+
+		for i, route := range routes {
+			if !route.Done {
+				if nextStep == 'L' {
+					routes[i].Current = nodes[route.Current].Left
+				} else {
+					routes[i].Current = nodes[route.Current].Right
+				}
+			}
+
+			if route.Current == "XXX" {
+				// error
+				log.Fatalf("Error")
+			}
+		}
+
+		for _, route := range routes {
+			fmt.Printf("Route: %s, Done: %t\n", route.Current, route.Done)
+		}
+
+		// Check if we are finished
+		done := true
+		for _, route := range routes {
+			if !strings.HasSuffix(route.Current, "Z") {
+				done = false
+				break
+			}
+		}
+
+		if done {
+			break
+		}
+
+		currentStep = (currentStep + 1) % maxSteps
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading file:", err)
+	}
+
+	return totalSteps
+}
+
 func main() {
 	fmt.Println("Advent of Code 2019 - Day 8")
-	fmt.Printf("Part 1: %d\n", Part1("data.txt"))
+	// fmt.Printf("Part 1: %d\n", Part1("data.txt"))
+	fmt.Printf("Part 2: %d\n", Part1("data.txt"))
 }
