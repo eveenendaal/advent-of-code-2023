@@ -161,10 +161,6 @@ func Part2(filePath string) int {
 			}
 		}
 
-		for _, route := range routes {
-			fmt.Printf("Route: %s, Done: %t\n", route.Current, route.Done)
-		}
-
 		// Check if we are finished
 		done := true
 		for _, route := range routes {
@@ -179,6 +175,10 @@ func Part2(filePath string) int {
 		}
 
 		currentStep = (currentStep + 1) % maxSteps
+
+		if totalSteps%100000 == 0 {
+			fmt.Printf("Total steps: %d\n", totalSteps)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -191,5 +191,5 @@ func Part2(filePath string) int {
 func main() {
 	fmt.Println("Advent of Code 2019 - Day 8")
 	// fmt.Printf("Part 1: %d\n", Part1("data.txt"))
-	fmt.Printf("Part 2: %d\n", Part1("data.txt"))
+	fmt.Printf("Part 2: %d\n", Part2("data.txt"))
 }
