@@ -83,3 +83,8 @@ func Part1(filePath string) int {
 
 	return totalSteps
 }
+
+func main() {
+	fmt.Println("Advent of Code 2019 - Day 8")
+	fmt.Printf("Part 1: %d\n", Part1("data.txt"))
+}
