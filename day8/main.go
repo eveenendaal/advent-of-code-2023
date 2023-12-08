@@ -17,7 +17,7 @@ type Node struct {
 type Route struct {
 	Start   string
 	Current string
-	Done    bool
+	Steps   int
 }
 
 func Part1(filePath string) int {
@@ -128,7 +128,7 @@ func Part2(filePath string) int {
 
 			// If node ends with a A it is a starting node
 			if strings.HasSuffix(node, "A") {
-				routes = append(routes, Route{node, node, false})
+				routes = append(routes, Route{node, node, 0})
 			}
 		}
 
@@ -147,12 +147,16 @@ func Part2(filePath string) int {
 		nextStep := instructions[currentStep]
 
 		for i, route := range routes {
-			if !route.Done {
-				if nextStep == 'L' {
-					routes[i].Current = nodes[route.Current].Left
-				} else {
-					routes[i].Current = nodes[route.Current].Right
-				}
+			if nextStep == 'L' {
+				routes[i].Current = nodes[route.Current].Left
+			} else {
+				routes[i].Current = nodes[route.Current].Right
+			}
+
+			// Check if we are finished
+			if strings.HasSuffix(routes[i].Current, "Z") && routes[i].Steps == 0 {
+				fmt.Printf("Route %d finished in %d steps\n", i, totalSteps)
+				routes[i].Steps = totalSteps
 			}
 
 			if route.Current == "XXX" {
@@ -164,7 +168,7 @@ func Part2(filePath string) int {
 		// Check if we are finished
 		done := true
 		for _, route := range routes {
-			if !strings.HasSuffix(route.Current, "Z") {
+			if route.Steps == 0 {
 				done = false
 				break
 			}
@@ -175,17 +179,37 @@ func Part2(filePath string) int {
 		}
 
 		currentStep = (currentStep + 1) % maxSteps
+	}
 
-		if totalSteps%100000 == 0 {
-			fmt.Printf("Total steps: %d\n", totalSteps)
-		}
+	values := []int{}
+	for _, route := range routes {
+		values = append(values, route.Steps)
 	}
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading file:", err)
 	}
 
-	return totalSteps
+	return lcmN(values)
+}
+
+func gcd(a, b int) int {
+	if b == 0 {
+		return a
+	}
+	return gcd(b, a%b)
+}
+
+func lcm(a, b int) int {
+	// a * b = lcm(a, b) * gcd(a, b)
+	return (a * b) / gcd(a, b)
+}
+
+func lcmN(n []int) int {
+	if len(n) == 2 {
+		return lcm(n[0], n[1])
+	}
+	return lcm(n[0], lcmN(n[1:]))
 }
 
 func main() {
