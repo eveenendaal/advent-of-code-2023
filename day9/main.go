@@ -9,8 +9,6 @@ import (
 )
 
 func getNextValue(input []int) int {
-	fmt.Printf("Input: %v\n", input)
-
 	diffs := []int{}
 	lastValue := 0
 	for i := 0; i < len(input)-1; i++ {
@@ -20,12 +18,20 @@ func getNextValue(input []int) int {
 		lastValue = next
 	}
 	// If all the values are 0, then we are done
-
-	if lastValue == 0 {
-		return 0
-	} else {
-		return getNextValue(diffs) + lastValue
+	allZeros := true
+	for next := range diffs {
+		if next != 0 {
+			allZeros = false
+			break
+		}
 	}
+
+	nextValue := 0
+	if !allZeros {
+		nextValue = getNextValue(diffs) + lastValue
+	}
+	fmt.Printf("Input: %v -> %d\n", input, nextValue)
+	return nextValue
 }
 
 func Part1(filePath string) int {
@@ -37,7 +43,10 @@ func Part1(filePath string) int {
 	defer file.Close()
 
 	total := 0
+	// create output1.txt file to write to
+	outputFile, _ := os.Create("output1.txt")
 
+	// read file line by line
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -50,7 +59,10 @@ func Part1(filePath string) int {
 			input = append(input, intValue)
 		}
 
-		total += getNextValue(input)
+		nextValue := getNextValue(input)
+		outputFile.Write([]byte(strconv.Itoa(nextValue) + "\n"))
+
+		total += nextValue
 	}
 
 	if err := scanner.Err(); err != nil {
