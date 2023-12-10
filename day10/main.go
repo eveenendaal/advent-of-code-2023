@@ -26,6 +26,20 @@ func checkHistory(history []Point, point Point) bool {
 	return false
 }
 
+func directionsContainPoint(option Node, point Point) bool {
+	if len(option.directions) == 0 {
+		return false
+	}
+
+	for _, p := range option.directions {
+		next := Point{option.point.x + p.x, option.point.y + p.y}
+		if next == point {
+			return true
+		}
+	}
+	return false
+}
+
 func Part1(filePath string) int {
 
 	// Open the file
@@ -60,9 +74,9 @@ func Part1(filePath string) int {
 			case 'J':
 				points[point] = Node{char, point, []Point{{-1, 0}, {0, -1}}}
 			case 'L':
-				points[point] = Node{char, point, []Point{{1, 0}, {0, 1}}}
-			case 'F':
 				points[point] = Node{char, point, []Point{{1, 0}, {0, -1}}}
+			case 'F':
+				points[point] = Node{char, point, []Point{{1, 0}, {0, 1}}}
 			case '7':
 				points[point] = Node{char, point, []Point{{-1, 0}, {0, 1}}}
 			case '.':
@@ -82,75 +96,72 @@ func Part1(filePath string) int {
 	option4 := points[Point{start.x + 1, start.y}]
 
 	paths := []Point{}
-	if option1.directions != nil {
+	if directionsContainPoint(option1, start) {
 		paths = append(paths, option1.point)
 	}
-	if option2.directions != nil {
+	if directionsContainPoint(option2, start) {
 		paths = append(paths, option2.point)
 	}
-	if option3.directions != nil {
+	if directionsContainPoint(option3, start) {
 		paths = append(paths, option3.point)
 	}
-	if option4.directions != nil {
+	if directionsContainPoint(option4, start) {
 		paths = append(paths, option4.point)
 	}
 
 	history := []Point{start}
-	done := false
-	stepCount := 0
-	fmt.Printf("Points: %v\n", points)
+	fmt.Printf("Start: %v\n", start)
+	// fmt.Printf("Points: %v\n", points)
+	fmt.Printf("Paths: %v\n", paths)
+	nextNode := points[paths[0]]
 	for {
-		for i, current := range paths {
-			nextNode := points[current]
-			nextDirections := nextNode.directions
-			fmt.Printf("Current: %v - %v (%d)\n", current, string(nextNode.character), i)
-			// Filter out directions in the history
-			if len(nextDirections) == 0 {
-				// Throw error
-				fmt.Printf("No directions for %v\n", current)
-				panic("No directions for current point")
-			}
-
-			// Check for direction one
-			directionOne := nextDirections[0]
-			pointOne := Point{current.x + directionOne.x, current.y + directionOne.y}
-			foundOne := checkHistory(history, pointOne)
-
-			// Check for direction two
-			directionTwo := nextDirections[1]
-			pointTwo := Point{current.x + directionTwo.x, current.y + directionTwo.y}
-			foundTwo := checkHistory(history, pointTwo)
-
-			if foundOne && foundTwo {
-				fmt.Printf("Done: %v\n", current)
-				done = true
-				break
-			} else if !foundOne {
-				paths[i] = pointOne
-				history = append(history, current)
-			} else if !foundTwo {
-				paths[i] = pointTwo
-				history = append(history, current)
-			}
+		current := nextNode.point
+		nextDirections := nextNode.directions
+		// fmt.Printf("Current: %v - %v\n", current, string(nextNode.character))
+		// Filter out directions in the history
+		if len(nextDirections) == 0 {
+			// Throw error
+			fmt.Printf("No directions for %v\n", nextNode)
+			panic("No directions for current point")
 		}
 
-		stepCount++
-		if done {
+		// Check for direction one
+		directionOne := nextDirections[0]
+		pointOne := Point{current.x + directionOne.x, current.y + directionOne.y}
+		foundOne := checkHistory(history, pointOne)
+
+		// Check for direction two
+		directionTwo := nextDirections[1]
+		pointTwo := Point{current.x + directionTwo.x, current.y + directionTwo.y}
+		foundTwo := checkHistory(history, pointTwo)
+
+		if len(history) > 1 && (pointOne == start || pointTwo == start) {
 			break
+		} else if !foundOne {
+			nextNode = points[pointOne]
+			history = append(history, current)
+		} else if !foundTwo {
+			nextNode = points[pointTwo]
+			history = append(history, current)
+		} else {
+			fmt.Printf("History: %v\n", history)
+			fmt.Printf("No valid directions for %v\n", nextNode)
+			panic("No valid directions for current point")
 		}
 	}
 
-	fmt.Printf("Points: %v\n", points)
-	fmt.Printf("Start: %v, Total: %d\n", start, stepCount)
+	// fmt.Printf("Points: %v\n", points)
+	total := (len(history) + 1) / 2
+	fmt.Printf("Start: %v, Total: %d\n", start, total)
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading file:", err)
 		return -1
 	}
 
-	return stepCount
+	return total
 }
 
 func main() {
-	Part1("data.txt")
+	fmt.Println("Part 1:", Part1("data.txt"))
 }
