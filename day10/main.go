@@ -40,7 +40,16 @@ func directionsContainPoint(option Node, point Point) bool {
 	return false
 }
 
-func Part1(filePath string) int {
+func findDirection(vertical []Point, point Point) bool {
+	for _, p := range vertical {
+		if p == point {
+			return true
+		}
+	}
+	return false
+}
+
+func Part2(filePath string) int {
 
 	// Open the file
 	file, err := os.Open(filePath)
@@ -67,6 +76,7 @@ func Part1(filePath string) int {
 			switch char {
 			case 'S':
 				start = point
+				points[point] = Node{char, point, []Point{}}
 			case '|':
 				points[point] = Node{char, point, []Point{{0, -1}, {0, 1}}}
 			case '-':
@@ -80,7 +90,7 @@ func Part1(filePath string) int {
 			case '7':
 				points[point] = Node{char, point, []Point{{-1, 0}, {0, 1}}}
 			case '.':
-				break
+				points[point] = Node{char, point, []Point{}}
 			default:
 				fmt.Println("Unknown character:", string(char))
 			}
@@ -149,20 +159,32 @@ func Part1(filePath string) int {
 			panic("No valid directions for current point")
 		}
 	}
+	history = append(history, start)
 
-	// fmt.Printf("Points: %v\n", points)
-	total := (len(history) + 1) / 2
-	fmt.Printf("Start: %v, Total: %d\n", start, total)
+	// https://en.wikipedia.org/wiki/Shoelace_formula
+	polygonArea := 0
+	for i := 0; i < len(history); i++ {
+		cur := history[i]
+		next := history[(i+1)%len(history)]
+
+		polygonArea += cur.x*next.y - cur.y*next.x
+	}
+
+	if polygonArea < 0 {
+		polygonArea = -polygonArea
+	}
+	polygonArea /= 2
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading file:", err)
 		return -1
 	}
 
-	return total
+	// https://en.wikipedia.org/wiki/Pick%27s_theorem
+	return polygonArea - len(history)/2 + 1
 }
 
-func Part2(filePath string) int {
+func Part1(filePath string) int {
 
 	// Open the file
 	file, err := os.Open(filePath)
@@ -285,5 +307,6 @@ func Part2(filePath string) int {
 }
 
 func main() {
-	fmt.Println("Part 1:", Part1("data.txt"))
+	// fmt.Println("Part 1:", Part1("data.txt"))
+	fmt.Println("Part 2:", Part2("data.txt"))
 }
