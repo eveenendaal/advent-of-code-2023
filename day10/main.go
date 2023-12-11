@@ -300,6 +300,7 @@ func Part1(filePath string) int {
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading file:", err)
+		
 		return -1
 	}
 
