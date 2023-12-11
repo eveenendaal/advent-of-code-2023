@@ -23,19 +23,19 @@ func (s Star) distance(other Star) int {
 	return abs(s.x-other.x) + abs(s.y-other.y)
 }
 
-func (s Star) finalLocation(emptyX []int, emptyY []int) Star {
+func (s Star) finalLocation(emptyX []int, emptyY []int, expandBy int) Star {
 	finalX := s.x
 	finalY := s.y
 	// filter emptyY less then x
 	for _, x := range emptyX {
 		if x < s.x {
-			finalX++
+			finalX = (finalX - 1) + expandBy
 		}
 	}
 	// filter emptyX less then y
 	for _, y := range emptyY {
 		if y < s.y {
-			finalY++
+			finalY = (finalY - 1) + expandBy
 		}
 	}
 	return Star{finalX, finalY, s.number}
@@ -50,7 +50,7 @@ func contains(stars []Star, star Star) bool {
 	return false
 }
 
-func Part1(filePath string) int {
+func Solve(filePath string, expandBy int) int {
 	// Open the file
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -128,10 +128,10 @@ func Part1(filePath string) int {
 	// Expand the grid
 	realStars := []Star{}
 	for _, star := range stars {
-		realStars = append(realStars, star.finalLocation(emptyX, emptyY))
+		realStars = append(realStars, star.finalLocation(emptyX, emptyY, expandBy))
 	}
 
-	fmt.Printf("Real Stars: %v\n", realStars)
+	// fmt.Printf("Real Stars: %v\n", realStars)
 
 	total := 0
 
@@ -153,5 +153,6 @@ func Part1(filePath string) int {
 }
 
 func main() {
-	fmt.Println("Part 1:", Part1("data.txt"))
+	// fmt.Println("Part 1:", Solve("data.txt", 1))
+	fmt.Println("Part 2:", Solve("data.txt", 1000000))
 }
