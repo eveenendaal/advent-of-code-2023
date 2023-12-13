@@ -6,6 +6,37 @@ import (
 	"os"
 )
 
+func slicesMatch(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func checkBlock(pattern []string) bool {
+	if len(pattern)%2 != 0 {
+		panic("Pattern must be even in length")
+	}
+	top := 0
+	bottom := len(pattern)
+	middle := bottom / 2
+
+	topHalf := pattern[top:middle]
+	bottomHalf := pattern[middle:bottom]
+
+	// Reverse the bottom half
+	for i, j := 0, len(bottomHalf)-1; i < j; i, j = i+1, j-1 {
+		bottomHalf[i], bottomHalf[j] = bottomHalf[j], bottomHalf[i]
+	}
+
+	return slicesMatch(topHalf, bottomHalf)
+}
+
 func handlePattern(pattern []string) int {
 	// Find vertical match
 	totalVerticalLines := len(pattern)
@@ -15,12 +46,18 @@ func handlePattern(pattern []string) int {
 		// Top First
 		// Get i number of rows from the top
 		n := i / 2
-		top := pattern[0:n]
-		bottom := pattern[n:i]
-		fmt.Printf("Top: %v\n", top)
-		fmt.Printf("Bottom: %v\n", bottom)
 
-		// Get i number of rows from the bottom
+		fmt.Printf("i: %v, n: %v\n", i, n)
+
+		block := pattern[0:i]
+		if checkBlock(block) {
+			fmt.Printf("Match: %d -> %v\n", i, block)
+		}
+
+		block = pattern[i:totalVerticalLines]
+		if checkBlock(block) {
+			fmt.Printf("Match: %d -> %v\n", i, block)
+		}
 
 		// Bottom Next
 
