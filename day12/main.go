@@ -51,14 +51,12 @@ func dp(i, j int, record string, group []int, cache [][]int) int {
 		return cache[i][j]
 	}
 
-	fmt.Printf("i: %d, j: %d, record: %s, group: %v\n", i, j, record, group)
-
 	res := 0
 	if record[i] == '.' {
 		// if character is a dot, we can skip it
 		res = dp(i+1, j, record, group, cache)
 	} else {
-		// if character is a ?, we can skip it
+		// if character is a ? we add the number of solutions for both a . and a #
 		if record[i] == '?' {
 			res += dp(i+1, j, record, group, cache)
 		}
@@ -67,14 +65,14 @@ func dp(i, j int, record string, group []int, cache [][]int) int {
 			count := 0
 			// count the number of consecutive characters from current i
 			for k := i; k < len(record); k++ {
-				// stop if the count is greater then the group, you hit a ., or you hit the count with ?s
-				if count > group[j] || record[k] == '.' || count == group[j] && record[k] == '?' {
+				// stop if the count is greater then the group, you hit a ., or you hit the count and the next is a ?
+				if count > group[j] || record[k] == '.' || (count == group[j] && record[k] == '?') {
 					break
 				}
 				count += 1
 			}
 
-			// If the count matches the group, we can continue
+			// If the count matches the group count
 			if count == group[j] {
 				// if you haven't hit the end of the record, and the next character is not a #
 				if i+count < len(record) && record[i+count] != '#' {
@@ -88,6 +86,10 @@ func dp(i, j int, record string, group []int, cache [][]int) int {
 	}
 
 	cache[i][j] = res
+	if res > 0 {
+		fmt.Printf("i: %d, j: %d, record: %s, group: %v\n", i, j, record, group)
+		fmt.Printf("cache: %v\n", cache)
+	}
 	return res
 }
 
