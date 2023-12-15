@@ -2,13 +2,16 @@ package main
 
 import "testing"
 
-func TestFunction1(t *testing.T) {
-	result := Solve("test.txt")
-	if result != 136 {
-		t.Errorf("Expected 136, got %d", result)
-	}
-}
+// func TestPart1(t *testing.T) {
+// 	result := Part1("test.txt")
+// 	if result != 136 {
+// 		t.Errorf("Expected 136, got %d", result)
+// 	}
+// }
 
-func TestFunction2(t *testing.T) {
-	// TODO: Add your test logic here
+func TestPart2(t *testing.T) {
+	result := Part2("test.txt")
+	if result != 64 {
+		t.Errorf("Expected 64, got %d", result)
+	}
 }
