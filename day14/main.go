@@ -15,7 +15,6 @@ func printColumns(columns [][]rune) {
 }
 
 func printColumn(column []rune) {
-	fmt.Printf("Column: ")
 	for _, c := range column {
 		fmt.Printf("%s", string(c))
 	}
@@ -98,7 +97,7 @@ func sortColumns(data [][]rune, direction int) {
 				if data[j][i] == 'O' {
 					for k := j; k > 0; k-- {
 						if data[k-1][i] == '#' {
-							continue
+							break
 						}
 						data[k-1][i], data[k][i] = data[k][i], data[k-1][i]
 					}
@@ -111,7 +110,7 @@ func sortColumns(data [][]rune, direction int) {
 				if data[i][j] == 'O' {
 					for k := j; k < columns-1; k++ {
 						if data[i][k+1] == '#' {
-							continue
+							break
 						}
 						data[i][k+1], data[i][k] = data[i][k], data[i][k+1]
 					}
@@ -124,7 +123,7 @@ func sortColumns(data [][]rune, direction int) {
 				if data[i][j] == 'O' {
 					for k := j; k > 0; k-- {
 						if data[i][k-1] == '#' {
-							continue
+							break
 						}
 						data[i][k-1], data[i][k] = data[i][k], data[i][k-1]
 					}
@@ -166,21 +165,18 @@ func Part2(filePath string) int {
 	}
 	fmt.Println()
 
-	// cycles := 1000000000
+	cycles := 1000000000
 
-	sortColumns(rows, EAST)
-	printColumns(rows)
+	for i := 0; i < cycles; i++ {
+		sortColumns(rows, NORTH)
+		sortColumns(rows, WEST)
+		sortColumns(rows, SOUTH)
+		sortColumns(rows, EAST)
 
-	// for i := 0; i < cycles; i++ {
-	// 	move(rows, NORTH)
-	// 	move(rows, WEST)
-	// 	move(rows, SOUTH)
-	// 	move(rows, EAST)
-
-	// 	if i%1000000 == 0 {
-	// 		fmt.Printf("Iteration: %d of %v\n", i, float32(i)/float32(cycles)*100)
-	// 	}
-	// }
+		if i%1000000 == 0 {
+			fmt.Printf("Iteration: %d of %v\n", i, float32(i)/float32(cycles)*100)
+		}
+	}
 
 	// Sort the columns
 	total := 0
