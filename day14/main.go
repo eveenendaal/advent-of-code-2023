@@ -7,6 +7,21 @@ import (
 	"os"
 )
 
+func printColumns(columns [][]rune) {
+	for _, column := range columns {
+		printColumn(column)
+	}
+	fmt.Println()
+}
+
+func printColumn(column []rune) {
+	fmt.Printf("Column: ")
+	for _, c := range column {
+		fmt.Printf("%s", string(c))
+	}
+	fmt.Println()
+}
+
 func Solve(filePath string) int {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -15,45 +30,47 @@ func Solve(filePath string) int {
 
 	total := 0
 	columns := make([][]rune, 0)
-	rowNumber := 0
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		line := scanner.Text()
-
 		fmt.Println(line)
-		// Move each character into a column
-		for i, c := range line {
-			if len(columns) <= i {
-				columns = append(columns, make([]rune, len(line)))
+
+		for columnNumber, c := range line {
+			if len(columns) <= columnNumber {
+				columns = append(columns, make([]rune, 0))
 			}
-			columns[i][rowNumber] = c
+			columns[columnNumber] = append(columns[columnNumber], c)
 		}
-
-		rowNumber++
 	}
+	fmt.Println()
 
+	printColumns(columns)
+
+	// Sort the columns
 	for _, column := range columns {
-		fmt.Printf("Column: ")
-		for _, c := range column {
-			fmt.Printf("%s", string(c))
-		}
-		fmt.Println()
-
 		// move all the O's to the left until they run into a #
 		for i := 0; i < len(column); i++ {
 			if column[i] == 'O' {
 				for j := i; j > 0; j-- {
 					if column[j-1] == '#' {
-						continue
+						break
 					}
-					columns[i][j] = column[j-1]
-					columns[i][j-1] = 'O'
+					column[j-1], column[j] = column[j], column[j-1]
 				}
 			}
 		}
+
+		printColumn(column)
+		for i := 0; i < len(column); i++ {
+			if column[i] == 'O' {
+				total += len(column) - i
+			}
+		}
 	}
+
+	// printColumns(columns)
 
 	err = file.Close()
 	if err != nil {
@@ -61,4 +78,8 @@ func Solve(filePath string) int {
 	}
 
 	return total
+}
+
+func main() {
+	fmt.Println("Part 1 Solution: ", Solve("input.txt"))
 }
