@@ -4,18 +4,31 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 )
 
-func slicesMatch(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
+func reversedMatch(a, b []string) bool {
+	for i := range a {
+		if a[i] != b[len(b)-1-i] {
 			return false
 		}
 	}
 	return true
+}
+
+func transpose(strings []string) []string {
+	if len(strings) == 0 {
+		return strings
+	}
+
+	result := make([]string, len(strings[0]))
+	for _, s := range strings {
+		for i, r := range s {
+			result[i] = result[i] + string(r)
+		}
+	}
+
+	return result
 }
 
 func checkBlock(pattern []string) bool {
@@ -26,47 +39,75 @@ func checkBlock(pattern []string) bool {
 	bottom := len(pattern)
 	middle := bottom / 2
 
-	topHalf := pattern[top:middle]
-	bottomHalf := pattern[middle:bottom]
+	topHalf := sort.StringSlice(pattern[top:middle])
+	bottomHalf := sort.StringSlice(pattern[middle:bottom])
 
-	// Reverse the bottom half
-	for i, j := 0, len(bottomHalf)-1; i < j; i, j = i+1, j-1 {
-		bottomHalf[i], bottomHalf[j] = bottomHalf[j], bottomHalf[i]
-	}
-
-	return slicesMatch(topHalf, bottomHalf)
+	return reversedMatch(topHalf, bottomHalf)
 }
 
-func handlePattern(pattern []string) int {
+func handlePattern(horizontalPattern []string) int {
 	// Find vertical match
-	totalVerticalLines := len(pattern)
+	totalVerticalLines := len(horizontalPattern)
 	start := totalVerticalLines - (totalVerticalLines % 2) // It must be an even number
+	total := 0
+
+	horizontalLineFound := false
+	verticalLineFound := false
 
 	for i := start; i > 1; i -= 2 {
-		// Top First
-		// Get i number of rows from the top
-		n := i / 2
-
-		fmt.Printf("i: %v, n: %v\n", i, n)
-
-		block := pattern[0:i]
+		// Check from Top
+		block := horizontalPattern[0:i]
 		if checkBlock(block) {
-			fmt.Printf("Match: %d -> %v\n", i, block)
+			lines := i / 2
+			fmt.Printf("Vertical Match: %d -> %v\n", lines, block)
+			total += lines * 100
+			horizontalLineFound = true
+			break
 		}
 
-		block = pattern[i:totalVerticalLines]
+		// Check from Bottom
+		block = horizontalPattern[totalVerticalLines-i : totalVerticalLines]
 		if checkBlock(block) {
-			fmt.Printf("Match: %d -> %v\n", i, block)
+			lines := totalVerticalLines - (i / 2)
+			fmt.Printf("Vertical Match: %d -> %v\n", lines, block)
+			total += lines * 100
+			horizontalLineFound = true
+			break
 		}
-
-		// Bottom Next
-
 	}
 
-	fmt.Println(pattern)
-	// Build hortizontal lines
-	// Find horizontal match
-	return 0
+	// Build horizontal lines
+	verticalPattern := transpose(horizontalPattern)
+	totalHorizontalLines := len(verticalPattern)
+	start = totalHorizontalLines - (totalHorizontalLines % 2) // It must be an even number
+
+	for i := start; i > 1; i -= 2 {
+		// Check from Top
+		block := verticalPattern[0:i]
+		if checkBlock(block) {
+			lines := i / 2
+			fmt.Printf("Horizontal Match: %d -> %v\n", lines, block)
+			total += lines
+			verticalLineFound = true
+			break
+		}
+
+		// Check from Bottom
+		block = verticalPattern[totalHorizontalLines-i : totalHorizontalLines]
+		if checkBlock(block) {
+			lines := totalHorizontalLines - (i / 2)
+			fmt.Printf("Horizontal Match: %d -> %v\n", lines, block)
+			total += lines
+			verticalLineFound = true
+			break
+		}
+	}
+
+	if !horizontalLineFound && !verticalLineFound {
+		panic("No match found")
+	}
+
+	return total
 }
 
 func Part1(filePath string) int {
@@ -99,4 +140,9 @@ func Part1(filePath string) int {
 	}
 
 	return total
+}
+
+func main() {
+	fmt.Println("Advent of Code 2017 - Day 13")
+	fmt.Println("Part 1:", Part1("data.txt"))
 }
