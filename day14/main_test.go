@@ -10,7 +10,7 @@ func TestPart1(t *testing.T) {
 }
 
 func TestPart2(t *testing.T) {
-	result := Part2("test.txt")
+	result := Part2("test.txt", 10000)
 	if result != 64 {
 		t.Errorf("Expected 64, got %d", result)
 	}

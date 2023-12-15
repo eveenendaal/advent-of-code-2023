@@ -146,7 +146,33 @@ func sortColumns(data [][]rune, direction int) {
 	}
 }
 
-func Part2(filePath string) int {
+func getSequence(values []int) (frequency, offset int, ok bool) {
+	if len(values) > 10 {
+		var reps []int
+		for i := 0; i < len(values)-1; i++ {
+			if values[i] == values[len(values)-1] {
+				reps = append(reps, i)
+				if len(reps) == 3 {
+					if reps[2]-reps[1] == reps[1]-reps[0] && reps[2]-reps[1] > 1 {
+						ok = true
+						for i := 0; i < reps[1]-reps[0]; i++ {
+							if values[reps[0]+i] != values[reps[1]+i] {
+								ok = false
+							}
+						}
+						if ok {
+							frequency = reps[2] - reps[1]
+							offset = reps[0]
+						}
+					}
+				}
+			}
+		}
+	}
+	return frequency, offset, ok
+}
+
+func Part2(filePath string, cycles int) int {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("failed to open file: %s", err)
@@ -165,26 +191,40 @@ func Part2(filePath string) int {
 	}
 	fmt.Println()
 
-	cycles := 1000000000
+	//for i := 0; i < cycles; i++ {
+	//	sortColumns(rows, NORTH)
+	//	sortColumns(rows, WEST)
+	//	sortColumns(rows, SOUTH)
+	//	sortColumns(rows, EAST)
+	//
+	//	if i%1000000 == 0 {
+	//		fmt.Printf("Iteration: %d of %v\n", i, float32(i)/float32(cycles)*100)
+	//	}
+	//}
 
-	for i := 0; i < cycles; i++ {
+	var results []int
+	var result int
+	for {
 		sortColumns(rows, NORTH)
 		sortColumns(rows, WEST)
 		sortColumns(rows, SOUTH)
 		sortColumns(rows, EAST)
-
-		if i%1000000 == 0 {
-			fmt.Printf("Iteration: %d of %v\n", i, float32(i)/float32(cycles)*100)
-		}
-	}
-
-	// Sort the columns
-	total := 0
-	for i, row := range rows {
-		for _, c := range row {
-			if c == 'O' {
-				total += len(rows) - i
+		numRocks := 0
+		result = 0
+		for y := 0; y < len(rows); y++ {
+			numRocks = 0
+			for x := 0; x < len(rows[y]); x++ {
+				if rows[y][x] == 'O' {
+					numRocks++
+				}
 			}
+			result += numRocks * (len(rows) - y)
+		}
+		results = append(results, result)
+		if frequency, offset, ok := getSequence(results); ok {
+			mod := (cycles - offset) % frequency
+			result = results[offset+mod-1]
+			break
 		}
 	}
 
@@ -193,10 +233,10 @@ func Part2(filePath string) int {
 		log.Fatalf("failed to close file: %s", err)
 	}
 
-	return total
+	return result
 }
 
 func main() {
 	// fmt.Println("Part 1 Solution: ", Part1("input.txt"))
-	fmt.Println("Part 2 Solution: ", Part2("input.txt"))
+	fmt.Println("Part 2 Solution: ", Part2("input.txt", 10000))
 }
