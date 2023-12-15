@@ -14,22 +14,46 @@ func Solve(filePath string) int {
 	}
 
 	total := 0
-	columns := make([]string, 0)
+	columns := make([][]rune, 0)
+	rowNumber := 0
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+		line := scanner.Text()
+
+		fmt.Println(line)
 		// Move each character into a column
-		for i, c := range scanner.Text() {
+		for i, c := range line {
 			if len(columns) <= i {
-				columns = append(columns, "")
+				columns = append(columns, make([]rune, len(line)))
 			}
-			columns[i] += string(c)
+			columns[i][rowNumber] = c
 		}
+
+		rowNumber++
 	}
 
-	fmt.Printf("Columns: %v\n", columns)
+	for _, column := range columns {
+		fmt.Printf("Column: ")
+		for _, c := range column {
+			fmt.Printf("%s", string(c))
+		}
+		fmt.Println()
+
+		// move all the O's to the left until they run into a #
+		for i := 0; i < len(column); i++ {
+			if column[i] == 'O' {
+				for j := i; j > 0; j-- {
+					if column[j-1] == '#' {
+						continue
+					}
+					columns[i][j] = column[j-1]
+					columns[i][j-1] = 'O'
+				}
+			}
+		}
+	}
 
 	err = file.Close()
 	if err != nil {
