@@ -57,7 +57,14 @@ func directionToString(direction int) string {
 	}
 }
 
-func handleBeam(startBeam *Beam, grid [][]Point) {
+func handleBeam(startBeam *Beam, originalGrid [][]Point) int {
+	// copy grid
+	grid := make([][]Point, len(originalGrid))
+	for i := range originalGrid {
+		grid[i] = make([]Point, len(originalGrid[i]))
+		copy(grid[i], originalGrid[i])
+	}
+
 	var beams = make([]Beam, 0)
 	beams = append(beams, *startBeam)
 	beamCounter := 1
@@ -141,6 +148,7 @@ func handleBeam(startBeam *Beam, grid [][]Point) {
 		}
 	}
 
+	return getTotal(grid)
 }
 
 func getTotal(grid [][]Point) int {
@@ -181,11 +189,41 @@ func Solve(filePath string, part1 bool) int {
 
 	if part1 {
 		beam := Beam{0, 0, Right, 0, false}
-		handleBeam(&beam, grid)
-		total = getTotal(grid)
+		total = handleBeam(&beam, grid)
 	} else {
-		// Part 2
+		maxX := len(grid[0])
+		maxY := len(grid)
+		maxResult := 0
 
+		for y := 0; y < maxY; y++ {
+			// Test left
+			result := handleBeam(&Beam{0, y, Right, 0, false}, grid)
+			if result > maxResult {
+				maxResult = result
+			}
+
+			// Test right
+			result = handleBeam(&Beam{0, y, Right, 0, false}, grid)
+			if result > maxResult {
+				maxResult = result
+			}
+		}
+
+		for x := 0; x < maxX; x++ {
+			// Test top
+			result := handleBeam(&Beam{x, 0, Down, 0, false}, grid)
+			if result > maxResult {
+				maxResult = result
+			}
+
+			// Test bottom
+			result = handleBeam(&Beam{x, maxY - 1, Up, 0, false}, grid)
+			if result > maxResult {
+				maxResult = result
+			}
+		}
+
+		total = maxResult
 	}
 
 	if err := scanner.Err(); err != nil {
