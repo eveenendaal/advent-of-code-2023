@@ -203,7 +203,7 @@ func Solve(filePath string, part1 bool) int {
 			}
 
 			// Test right
-			result = handleBeam(&Beam{0, y, Right, 0, false}, grid)
+			result = handleBeam(&Beam{maxX - 1, y, Left, 0, false}, grid)
 			if result > maxResult {
 				maxResult = result
 			}
