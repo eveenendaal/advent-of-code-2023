@@ -40,15 +40,15 @@ func (position Position) Move(direction Direction, moves int) Position {
 
 // Location represents a given position and direction.
 type Location struct {
-	Pos Position
-	Dir Direction
+	Position  Position
+	Direction Direction
 }
 
 // NewLocation creates a new location.
-func NewLocation(row, col int, dir Direction) Location {
+func NewLocation(row, col int, direction Direction) Location {
 	return Location{
-		Pos: NewPosition(row, col),
-		Dir: dir,
+		Position:  NewPosition(row, col),
+		Direction: direction,
 	}
 }
 
@@ -104,16 +104,16 @@ type Position struct {
 }
 
 // Turn turns left or right.
-func (location Location) Turn(d Direction, moves int) Location {
-	dir := location.Dir.Turn(d)
-	pos := location.Pos.Move(dir, moves)
-	return Location{Pos: pos, Dir: dir}
+func (location Location) Turn(direction Direction, moves int) Location {
+	newDirection := location.Direction.Turn(direction)
+	position := location.Position.Move(newDirection, moves)
+	return Location{Position: position, Direction: newDirection}
 }
 
 // Straight moves in the current direction.
 func (location Location) Straight(moves int) Location {
-	pos := location.Pos.Move(location.Dir, moves)
-	return Location{Pos: pos, Dir: location.Dir}
+	pos := location.Position.Move(location.Direction, moves)
+	return Location{Position: pos, Direction: location.Direction}
 }
 
 func shortest(board map[Position]int, target Position, minStraight, maxStraight int) int {
@@ -149,7 +149,7 @@ func shortest(board map[Position]int, target Position, minStraight, maxStraight 
 	for !queue.Empty() {
 		next, _ := queue.Dequeue()
 		nextEntry := next.(entry)
-		nextPosition := nextEntry.loc.Pos
+		nextPosition := nextEntry.loc.Position
 
 		if _, exists := board[nextPosition]; !exists {
 			continue
