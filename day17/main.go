@@ -10,10 +10,10 @@ import (
 )
 
 // Delta returns a new position from a row delta and col delta.
-func (p Position) Delta(row, col int) Position {
+func (position Position) Delta(row, col int) Position {
 	return Position{
-		Row: p.Row + row,
-		Col: p.Col + col,
+		Row: position.Row + row,
+		Col: position.Col + col,
 	}
 }
 
@@ -23,16 +23,16 @@ func NewPosition(row, col int) Position {
 }
 
 // Move moves into a given direction and a certain number of times.
-func (p Position) Move(direction Direction, moves int) Position {
+func (position Position) Move(direction Direction, moves int) Position {
 	switch direction {
 	case Up:
-		return p.Delta(-moves, 0)
+		return position.Delta(-moves, 0)
 	case Down:
-		return p.Delta(moves, 0)
+		return position.Delta(moves, 0)
 	case Left:
-		return p.Delta(0, -moves)
+		return position.Delta(0, -moves)
 	case Right:
-		return p.Delta(0, moves)
+		return position.Delta(0, moves)
 	}
 
 	panic("not handled")
@@ -103,39 +103,17 @@ type Position struct {
 	Col int
 }
 
-// Rev reverses the current direction.
-func (d Direction) Rev() Direction {
-	switch d {
-	case Up:
-		return Down
-	case Down:
-		return Up
-	case Left:
-		return Right
-	case Right:
-		return Left
-	}
-	panic("not handled")
-}
-
-// Rev moves in the reverse direction.
-func (l Location) Rev(moves int) Location {
-	dir := l.Dir.Rev()
-	pos := l.Pos.Move(dir, moves)
-	return Location{Pos: pos, Dir: dir}
-}
-
 // Turn turns left or right.
-func (l Location) Turn(d Direction, moves int) Location {
-	dir := l.Dir.Turn(d)
-	pos := l.Pos.Move(dir, moves)
+func (location Location) Turn(d Direction, moves int) Location {
+	dir := location.Dir.Turn(d)
+	pos := location.Pos.Move(dir, moves)
 	return Location{Pos: pos, Dir: dir}
 }
 
 // Straight moves in the current direction.
-func (l Location) Straight(moves int) Location {
-	pos := l.Pos.Move(l.Dir, moves)
-	return Location{Pos: pos, Dir: l.Dir}
+func (location Location) Straight(moves int) Location {
+	pos := location.Pos.Move(location.Dir, moves)
+	return Location{Pos: pos, Dir: location.Dir}
 }
 
 func shortest(board map[Position]int, target Position, minStraight, maxStraight int) int {
@@ -148,19 +126,19 @@ func shortest(board map[Position]int, target Position, minStraight, maxStraight 
 		heatLoss int
 	}
 
-	q := pq.NewWith(func(a, b any) int {
+	queue := pq.NewWith(func(a, b any) int {
 		p1 := a.(entry).heatLoss
 		p2 := b.(entry).heatLoss
 		return p1 - p2
 	})
 
-	q.Enqueue(entry{
+	queue.Enqueue(entry{
 		state: state{
 			loc:      NewLocation(0, 1, Right),
 			straight: 1,
 		},
 	})
-	q.Enqueue(entry{
+	queue.Enqueue(entry{
 		state: state{
 			loc:      NewLocation(1, 0, Down),
 			straight: 1,
@@ -168,54 +146,54 @@ func shortest(board map[Position]int, target Position, minStraight, maxStraight 
 	})
 	visited := make(map[state]int)
 
-	for !q.Empty() {
-		t, _ := q.Dequeue()
-		e := t.(entry)
-		pos := e.loc.Pos
+	for !queue.Empty() {
+		next, _ := queue.Dequeue()
+		nextEntry := next.(entry)
+		nextPosition := nextEntry.loc.Pos
 
-		if _, exists := board[pos]; !exists {
+		if _, exists := board[nextPosition]; !exists {
 			continue
 		}
 
-		heat := board[pos] + e.heatLoss
-		if pos == target {
+		newHeatLoss := board[nextPosition] + nextEntry.heatLoss
+		if nextPosition == target {
 			// Thanks to the priority queue, at this stage we already know this is the
 			// shortest path.
-			return heat
+			return newHeatLoss
 		}
 
-		if v, exists := visited[e.state]; exists {
-			if v <= heat {
+		if existingHeatLoss, exists := visited[nextEntry.state]; exists {
+			if existingHeatLoss <= newHeatLoss {
 				continue
 			}
 		}
-		visited[e.state] = heat
+		visited[nextEntry.state] = newHeatLoss
 
-		if e.straight >= minStraight {
-			q.Enqueue(entry{
+		if nextEntry.straight >= minStraight {
+			queue.Enqueue(entry{
 				state: state{
-					loc:      e.loc.Turn(Left, 1),
+					loc:      nextEntry.loc.Turn(Left, 1),
 					straight: 1,
 				},
-				heatLoss: heat,
+				heatLoss: newHeatLoss,
 			})
 
-			q.Enqueue(entry{
+			queue.Enqueue(entry{
 				state: state{
-					loc:      e.loc.Turn(Right, 1),
+					loc:      nextEntry.loc.Turn(Right, 1),
 					straight: 1,
 				},
-				heatLoss: heat,
+				heatLoss: newHeatLoss,
 			})
 		}
 
-		if e.straight < maxStraight {
-			q.Enqueue(entry{
+		if nextEntry.straight < maxStraight {
+			queue.Enqueue(entry{
 				state: state{
-					loc:      e.loc.Straight(1),
-					straight: e.straight + 1,
+					loc:      nextEntry.loc.Straight(1),
+					straight: nextEntry.straight + 1,
 				},
-				heatLoss: heat,
+				heatLoss: newHeatLoss,
 			})
 		}
 	}
