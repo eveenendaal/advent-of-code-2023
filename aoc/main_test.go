@@ -42,3 +42,16 @@ func TestIntAbs(t *testing.T) {
 		t.Errorf("Expected 0, got %d", IntAbs(0))
 	}
 }
+
+func TestFindAreaShoelace(t *testing.T) {
+	nodes := []Position{
+		{0, 0},
+		{1, 0},
+		{1, 1},
+		{0, 1},
+	}
+	area := FindAreaShoelace(nodes)
+	if area != 4 {
+		t.Errorf("Expected 4, got %d", area)
+	}
+}

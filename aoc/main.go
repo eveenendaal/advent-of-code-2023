@@ -81,3 +81,21 @@ func IntAbs(i int) int {
 	}
 	return i
 }
+
+// FindAreaShoelace Finds the area of a polygon using the shoelace formula
+func FindAreaShoelace(nodes []Position) int {
+	// https://en.wikipedia.org/wiki/Shoelace_formula
+	area := 0
+
+	for i := 0; i < len(nodes); i++ {
+		current := nodes[i]
+		next := nodes[(i+1)%(len(nodes))]
+
+		area += (current.Column * next.Row) - (next.Column * current.Row) + max(
+			IntAbs(current.Column-next.Column),
+			IntAbs(current.Row-next.Row),
+		)
+	}
+
+	return (area / 2) + 1
+}
