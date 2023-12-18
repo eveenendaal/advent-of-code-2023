@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	aoc "github.com/eveenendaal/advent-of-code-2023/aoc"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -12,6 +10,53 @@ type Instruction struct {
 	direction aoc.Direction
 	distance  int
 	color     string
+}
+
+func findAreaShoelace(nodes []aoc.Position) int {
+	area := 0
+
+	for i := 0; i < len(nodes); i++ {
+		pointA, pointB := nodes[i], nodes[(i+1)%(len(nodes))]
+		area += (pointA.Column * pointB.Row) - (pointB.Column * pointA.Row) + max(aoc.IntAbs(pointA.Column-pointB.Column), aoc.IntAbs(pointA.Row-pointB.Row))
+	}
+
+	return area / 2
+}
+
+func floodFill(border []aoc.Position, start aoc.Position) int {
+	trench := make(map[aoc.Position]bool)
+
+	// Add border to trench
+	for _, position := range border {
+		trench[position] = true
+	}
+
+	queue := []aoc.Position{start}
+
+	for {
+		if len(queue) == 0 {
+			break
+		}
+
+		// Get next
+		next := queue[0]
+
+		// get edges
+		edges := []aoc.Position{{next.Column, next.Row - 1}, {next.Column, next.Row + 1}, {next.Column - 1, next.Row}, {next.Column + 1, next.Row}}
+
+		for _, edge := range edges {
+			if _, contains := trench[edge]; !contains {
+				trench[edge] = true
+				queue = append(queue, edge)
+			}
+		}
+
+		// remove next from queue
+		queue = queue[1:]
+	}
+
+	// Convert trench to slice
+	return len(trench)
 }
 
 func Solve(filepath string) int {
@@ -52,7 +97,6 @@ func Solve(filepath string) int {
 	// Create Start
 	start := aoc.Position{Column: 0, Row: 0}
 	borders := []aoc.Position{start}
-	verticalBorders := []aoc.Position{start}
 
 	// Loop over instructions
 	for _, instruction := range instructions {
@@ -60,76 +104,17 @@ func Solve(filepath string) int {
 			switch instruction.direction {
 			case aoc.Up:
 				start.Row++
-				verticalBorders = append(verticalBorders, start)
 			case aoc.Right:
 				start.Column++
 			case aoc.Down:
 				start.Row--
-				verticalBorders = append(verticalBorders, start)
 			case aoc.Left:
 				start.Column--
 			}
 			borders = append(borders, start)
 		}
-		fmt.Printf("Line: %v\n", instruction)
 	}
 
-	// Find the smallest rectangle that contains all the points
-	minX := math.MaxInt16
-	maxX := math.MinInt16
-	minY := math.MaxInt16
-	maxY := math.MinInt16
-
-	for _, border := range borders {
-		if border.Column < minX {
-			minX = border.Column
-		}
-		if border.Column > maxX {
-			maxX = border.Column
-		}
-		if border.Row < minY {
-			minY = border.Row
-		}
-		if border.Row > maxY {
-			maxY = border.Row
-		}
-	}
-
-	total := 0
-
-	for y := maxY; y >= minY; y-- {
-		outside := true
-		for x := minX; x <= maxX; x++ {
-			// Check if we've hit a border
-			emptySpace := true
-
-			for _, border := range borders {
-				if border.Column == x && border.Row == y {
-					emptySpace = false
-					break
-				}
-			}
-
-			for _, border := range verticalBorders {
-				if border.Column == x && border.Row == y {
-					outside = !outside
-					break
-				}
-			}
-
-			if emptySpace && !outside {
-				fmt.Print("I")
-				total++
-			} else if !emptySpace {
-				fmt.Print("#")
-				total++
-			} else {
-				fmt.Print(" ")
-			}
-
-		}
-		fmt.Println()
-	}
-
-	return total
+	area := floodFill(borders, aoc.Position{1, -1})
+	return area
 }
