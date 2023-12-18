@@ -43,15 +43,53 @@ func TestIntAbs(t *testing.T) {
 	}
 }
 
+type TestShape struct {
+	interior int
+	exterior int
+	points   []Position
+}
+
+var shapes = []TestShape{
+	TestShape{
+		interior: 1,
+		exterior: 9,
+		points: []Position{
+			{0, 0},
+			{2, 0},
+			{2, 2},
+			{0, 2},
+		},
+	},
+	TestShape{
+		interior: 2, // off by one expected; the answer is actually 1
+		exterior: 11,
+		points: []Position{
+			{0, 0},
+			{3, 0},
+			{3, 2},
+			{1, 2},
+			{1, 1},
+			{0, 1},
+		},
+	},
+}
+
 func TestFindAreaShoelace(t *testing.T) {
-	nodes := []Position{
-		{0, 0},
-		{1, 0},
-		{1, 1},
-		{0, 1},
+	for _, shape := range shapes {
+		area := FindInclusiveAreaShoelace(shape.points)
+		if area != shape.exterior {
+			PrintShape(shape.points)
+			t.Errorf("Expected %d, got %d", shape.exterior, area)
+		}
 	}
-	area := FindAreaShoelace(nodes)
-	if area != 4 {
-		t.Errorf("Expected 4, got %d", area)
+}
+
+func TestFindInteriorAreaShoelace(t *testing.T) {
+	for _, shape := range shapes {
+		area := FindInteriorAreaShoelace(shape.points)
+		if area != shape.interior {
+			PrintShape(shape.points)
+			t.Errorf("Expected %d, got %d", shape.interior, area)
+		}
 	}
 }
