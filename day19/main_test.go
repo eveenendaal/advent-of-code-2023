@@ -15,3 +15,10 @@ func TestPart2Solution(t *testing.T) {
 		t.Errorf("Expected 434147, got %d", result)
 	}
 }
+
+func TestPart2Test(t *testing.T) {
+	result := Part2("test.txt")
+	if result != 167409079868000 {
+		t.Errorf("Expected 167409079868000, got %d", result)
+	}
+}

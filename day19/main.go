@@ -49,7 +49,7 @@ func (ruleSet *RuleSet) findNext(part Part) string {
 	return ruleSet.fallbackRule
 }
 
-func Part1(filePath string) int {
+func parseInput(filePath string) ([]Part, []RuleSet) {
 	lines := aoc.ReadFileToLines(filePath)
 	ruleRegex := regexp.MustCompile(`^[a-z]+\{`)
 	comparableRegex := regexp.MustCompile(`^([a-z]+)([<>])([0-9]+)$`)
@@ -110,6 +110,42 @@ func Part1(filePath string) int {
 			parts = append(parts, part)
 		}
 	}
+
+	return parts, ruleSets
+}
+
+func Part1(filePath string) int {
+	parts, ruleSets := parseInput(filePath)
+
+	ruleSetMap := make(map[string]RuleSet)
+	for _, ruleSet := range ruleSets {
+		ruleSetMap[ruleSet.id] = ruleSet
+	}
+
+	total := 0
+	for _, part := range parts {
+		next := "in"
+		done := false
+		for !done {
+			ruleSet, _ := ruleSetMap[next]
+			next = ruleSet.findNext(part)
+			if next == "A" || next == "R" {
+				done = true
+			}
+		}
+
+		if next == "A" {
+			total += part.getTotal()
+		}
+
+		fmt.Printf("Part: %v, Result: %s\n", part, next)
+	}
+
+	return total
+}
+
+func Part2(filePath string) int {
+	parts, ruleSets := parseInput(filePath)
 
 	ruleSetMap := make(map[string]RuleSet)
 	for _, ruleSet := range ruleSets {
