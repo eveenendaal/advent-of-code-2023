@@ -25,8 +25,28 @@ type Part struct {
 	variables map[string]int
 }
 
+func (part Part) getTotal() int {
+	total := 0
+	for _, value := range part.variables {
+		total += value
+	}
+	return total
+}
+
 func (ruleSet *RuleSet) findNext(part Part) string {
-	return ""
+	for _, rule := range ruleSet.rules {
+		variableName := rule.variableName
+		if rule.comparable == "<" {
+			if part.variables[variableName] < rule.value {
+				return rule.nextId
+			}
+		} else {
+			if part.variables[variableName] > rule.value {
+				return rule.nextId
+			}
+		}
+	}
+	return ruleSet.fallbackRule
 }
 
 func Part1(filePath string) int {
@@ -91,16 +111,31 @@ func Part1(filePath string) int {
 		}
 	}
 
-	for _, part := range parts {
-		fmt.Printf("Part: %v\n", part)
-	}
+	ruleSetMap := make(map[string]RuleSet)
 	for _, ruleSet := range ruleSets {
-		fmt.Printf("RuleSet: %v\n", ruleSet)
+		ruleSetMap[ruleSet.id] = ruleSet
 	}
 
-	// Process Parts
+	total := 0
+	for _, part := range parts {
+		next := "in"
+		done := false
+		for !done {
+			ruleSet, _ := ruleSetMap[next]
+			next = ruleSet.findNext(part)
+			if next == "A" || next == "R" {
+				done = true
+			}
+		}
 
-	return 0
+		if next == "A" {
+			total += part.getTotal()
+		}
+
+		fmt.Printf("Part: %v, Result: %s\n", part, next)
+	}
+
+	return total
 }
 
 func main() {

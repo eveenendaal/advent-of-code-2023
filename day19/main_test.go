@@ -10,5 +10,8 @@ func TestPart1Test(t *testing.T) {
 }
 
 func TestPart2Solution(t *testing.T) {
-	// TODO: Implement test
+	result := Part1("input.txt")
+	if result != 434147 {
+		t.Errorf("Expected 434147, got %d", result)
+	}
 }
