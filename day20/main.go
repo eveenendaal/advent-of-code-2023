@@ -100,7 +100,7 @@ func (p *PulseQueue) len() int {
 	return len(p.queue)
 }
 
-func Part1(filePath string) int {
+func Part1(filePath string, buttonPresses int) int {
 	lines := aoc.ReadFileToLines(filePath)
 	modules := make(map[string]Module)
 
@@ -110,7 +110,6 @@ func Part1(filePath string) int {
 	}
 
 	queue := PulseQueue{queue: make([]Pulse, 0)}
-	buttonPresses := 1000
 	for i := 0; i < buttonPresses; i++ {
 		queue.send("button", []string{"broadcaster"}, Low)
 	}
@@ -123,23 +122,24 @@ func Part1(filePath string) int {
 			// fmt.Printf("Broadcaster: %v -> %v\n", pulse, module)
 			queue.send(module.name, module.destinations, pulse.value)
 		case flipFlop:
-			// fmt.Printf("FlipFlop: %v -> %v\n", pulse, module)
-			if !module.state && pulse.value == High {
-				// do nothing
-			} else if pulse.value == Low {
+			if pulse.value == Low {
 				if !module.state {
 					queue.send(module.name, module.destinations, High)
-				}
-				module.state = !module.state
-			} else if pulse.value == High {
-				if module.state {
+				} else {
 					queue.send(module.name, module.destinations, Low)
 				}
-				module.state = !module.state
+				// copy the module and reverse the state
+				modules[pulse.destination] = Module{
+					name:         module.name,
+					moduleType:   module.moduleType,
+					destinations: module.destinations,
+					state:        !module.state,
+					history:      module.history,
+				}
 			}
 		case conjunction:
 			// fmt.Printf("Conjunction: %v -> %v\n", pulse, module)
-			module.history[pulse.source] = pulse.value
+			modules[pulse.destination].history[pulse.source] = pulse.value
 			pulseValue := Low
 			for _, next := range module.history {
 				if next == Low {
