@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	aoc "github.com/eveenendaal/advent-of-code-2023/aoc"
 	"strings"
 )
@@ -12,6 +11,7 @@ const (
 	broadcaster ModuleType = iota
 	flipFlop
 	conjunction
+	untyped
 )
 
 type Module struct {
@@ -22,7 +22,6 @@ type Module struct {
 	history      map[string]PulseType
 }
 
-type ModuleState int
 type PulseType int
 
 const (
@@ -63,44 +62,67 @@ type Pulse struct {
 	value       PulseType
 }
 
-func (p Pulse) String() string {
-	valueString := "Low"
-	if p.value == High {
-		valueString = "High"
-	}
-	return fmt.Sprintf("%s from %s to %s", valueString, p.source, p.destination)
+type PulseCounter map[PulseType]int64
+
+func (p *PulseCounter) add(pulseType PulseType) {
+	(*p)[pulseType]++
 }
 
-type PulseQueue struct {
-	queue      []Pulse
-	highPulses int
-	lowPulses  int
+func (p *PulseCounter) total() int64 {
+	return (*p)[Low] * (*p)[High]
 }
 
-func (p *PulseQueue) send(source string, destinations []string, value PulseType) {
-	for _, destination := range destinations {
-		if value == High {
-			p.highPulses++
-		} else {
-			p.lowPulses++
+func SendPulse(pulseCounter PulseCounter, pulses []Pulse, modules map[string]Module) {
+	newPulses := []Pulse{}
+
+	for _, pulse := range pulses {
+		pulseCounter.add(pulse.value)
+		module := modules[pulse.destination]
+
+		switch module.moduleType {
+		case broadcaster:
+			for _, destination := range module.destinations {
+				newPulses = append(newPulses, Pulse{pulse.destination, destination, pulse.value})
+			}
+		case flipFlop:
+			if pulse.value == Low {
+				var nextPulse PulseType
+				if module.state {
+					nextPulse = Low
+				} else {
+					nextPulse = High
+				}
+				module.state = !module.state
+				modules[pulse.destination] = module
+
+				for _, destination := range module.destinations {
+					newPulses = append(newPulses, Pulse{pulse.destination, destination, nextPulse})
+				}
+			}
+		case conjunction:
+			module.history[pulse.source] = pulse.value
+			modules[pulse.destination] = module
+
+			pulseValue := Low
+			for _, next := range module.history {
+				if next == Low {
+					pulseValue = High
+					break
+				}
+			}
+
+			for _, destination := range module.destinations {
+				newPulses = append(newPulses, Pulse{pulse.destination, destination, pulseValue})
+			}
 		}
-		pulse := Pulse{source, destination, value}
-		// fmt.Printf("Sending: %v\n", pulse)
-		p.queue = append(p.queue, pulse)
+	}
+
+	if len(newPulses) > 0 {
+		SendPulse(pulseCounter, newPulses, modules)
 	}
 }
 
-func (p *PulseQueue) next() Pulse {
-	pulse := p.queue[0]
-	p.queue = p.queue[1:]
-	return pulse
-}
-
-func (p *PulseQueue) len() int {
-	return len(p.queue)
-}
-
-func Part1(filePath string, buttonPresses int) int {
+func Part1(filePath string, buttonPresses int) int64 {
 	lines := aoc.ReadFileToLines(filePath)
 	modules := make(map[string]Module)
 
@@ -109,47 +131,24 @@ func Part1(filePath string, buttonPresses int) int {
 		modules[module.name] = module
 	}
 
-	queue := PulseQueue{queue: make([]Pulse, 0)}
-	for i := 0; i < buttonPresses; i++ {
-		queue.send("button", []string{"broadcaster"}, Low)
-	}
-
-	for queue.len() > 0 {
-		pulse := queue.next()
-		module := modules[pulse.destination]
-		switch module.moduleType {
-		case broadcaster:
-			// fmt.Printf("Broadcaster: %v -> %v\n", pulse, module)
-			queue.send(module.name, module.destinations, pulse.value)
-		case flipFlop:
-			if pulse.value == Low {
-				if !module.state {
-					queue.send(module.name, module.destinations, High)
-				} else {
-					queue.send(module.name, module.destinations, Low)
-				}
-				// copy the module and reverse the state
-				modules[pulse.destination] = Module{
-					name:         module.name,
-					moduleType:   module.moduleType,
-					destinations: module.destinations,
-					state:        !module.state,
-					history:      module.history,
-				}
+	for _, module := range modules {
+		for _, destination := range module.destinations {
+			existingModule, ok := modules[destination]
+			if ok {
+				existingModule.history[module.name] = Low
+				modules[destination] = existingModule
+			} else {
+				newModule := createModule(destination, untyped, []string{})
+				newModule.history[module.name] = Low
+				modules[destination] = newModule
 			}
-		case conjunction:
-			// fmt.Printf("Conjunction: %v -> %v\n", pulse, module)
-			modules[pulse.destination].history[pulse.source] = pulse.value
-			pulseValue := Low
-			for _, next := range module.history {
-				if next == Low {
-					pulseValue = High
-					break
-				}
-			}
-			queue.send(module.name, module.destinations, pulseValue)
 		}
 	}
 
-	return queue.highPulses * queue.lowPulses
+	pulseCounter := PulseCounter{}
+
+	for i := 0; i < buttonPresses; i++ {
+		SendPulse(pulseCounter, []Pulse{{"button", "broadcaster", Low}}, modules)
+	}
+	return pulseCounter.total()
 }
