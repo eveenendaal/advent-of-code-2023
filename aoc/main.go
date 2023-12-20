@@ -174,3 +174,23 @@ func (p Position) move(direction Direction, distance int) Position {
 	}
 	panic("invalid direction")
 }
+
+// FindLeastCommonMultiple Find the least common multiple of a slice of numbers
+func FindLeastCommonMultiple(numbers []int64) int64 {
+	gcd := func(a, b int64) int64 { //general common divisor
+		for b != 0 {
+			a, b = b, a%b
+		}
+		return a
+	}
+
+	lcm := func(a, b int64) int64 { //least common multiple
+		return a * b / gcd(a, b)
+	}
+
+	result := int64(1)
+	for _, num := range numbers {
+		result = lcm(result, num)
+	}
+	return result
+}

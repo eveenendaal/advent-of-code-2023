@@ -34,3 +34,10 @@ func TestPart1Solution(t *testing.T) {
 		t.Errorf("Expected %d, got %d (diff %d)", answer, result, diff)
 	}
 }
+
+func TestPart2Solution(t *testing.T) {
+	result := Part2("input.txt", "rx")
+	if result != 231657829136023 {
+		t.Errorf("Expected 231657829136023, got %d", result)
+	}
+}

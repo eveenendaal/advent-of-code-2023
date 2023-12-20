@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	aoc "github.com/eveenendaal/advent-of-code-2023/aoc"
 	"strings"
 )
@@ -72,7 +73,7 @@ func (p *PulseCounter) total() int64 {
 	return (*p)[Low] * (*p)[High]
 }
 
-func SendPulse(pulseCounter PulseCounter, pulses []Pulse, modules map[string]Module) {
+func SendPulse(pulseCounter PulseCounter, pulses []Pulse, modules map[string]Module, metadata *DestinationCycleData) {
 	newPulses := []Pulse{}
 
 	for _, pulse := range pulses {
@@ -112,13 +113,27 @@ func SendPulse(pulseCounter PulseCounter, pulses []Pulse, modules map[string]Mod
 			}
 
 			for _, destination := range module.destinations {
+				if metadata != nil {
+					// Is this destination one of the targets we want to be high?
+					if _, ok := metadata.targets[pulse.destination]; ok && pulseValue == metadata.expectedPulseType {
+						// Record key presses
+						metadata.counters[pulse.destination] = metadata.cycles
+						// Remove this destination from the targets
+						delete(metadata.targets, pulse.destination)
+					}
+
+					if len(metadata.targets) == 0 {
+						return
+					}
+				}
+
 				newPulses = append(newPulses, Pulse{pulse.destination, destination, pulseValue})
 			}
 		}
 	}
 
 	if len(newPulses) > 0 {
-		SendPulse(pulseCounter, newPulses, modules)
+		SendPulse(pulseCounter, newPulses, modules, metadata)
 	}
 }
 
@@ -148,7 +163,101 @@ func Part1(filePath string, buttonPresses int) int64 {
 	pulseCounter := PulseCounter{}
 
 	for i := 0; i < buttonPresses; i++ {
-		SendPulse(pulseCounter, []Pulse{{"button", "broadcaster", Low}}, modules)
+		SendPulse(pulseCounter, []Pulse{{"button", "broadcaster", Low}}, modules, nil)
 	}
 	return pulseCounter.total()
+}
+
+type DestinationCycleData struct {
+	targets           map[string]bool
+	counters          map[string]int64
+	expectedPulseType PulseType
+	cycles            int64
+}
+
+func Part2(filePath string, finalDest string) int64 {
+	lines := aoc.ReadFileToLines(filePath)
+	modules := make(map[string]Module)
+
+	for _, line := range lines {
+		module := processLine(line)
+		modules[module.name] = module
+	}
+
+	for _, module := range modules {
+		for _, destination := range module.destinations {
+			existingModule, ok := modules[destination]
+			if ok {
+				existingModule.history[module.name] = Low
+				modules[destination] = existingModule
+			} else {
+				newModule := createModule(destination, untyped, []string{})
+				newModule.history[module.name] = Low
+				modules[destination] = newModule
+			}
+		}
+	}
+
+	/**
+	 * Let's find the last conjunction module with more than one input
+	 * Finding the cycle for these inputs should be enough to find the cycle for the whole system using the least common multiple
+	 */
+	finalModule, ok := modules[finalDest]
+	if !ok {
+		fmt.Println("finalDest module not found")
+		return -1
+	}
+
+	var penultimateModule Module
+	for moduleLabel := range finalModule.history {
+		penultimateModule = modules[moduleLabel]
+		break
+	}
+
+	metadataTargets := map[string]bool{}
+	for moduleLabel := range penultimateModule.history {
+		metadataTargets[moduleLabel] = true
+	}
+
+	// Find the conjunctions that need to be high before the final module can be high
+	cycleData := DestinationCycleData{
+		targets:           metadataTargets,
+		counters:          make(map[string]int64),
+		expectedPulseType: High,
+		cycles:            1,
+	}
+
+	for {
+		SendPulse(PulseCounter{}, []Pulse{{"button", "broadcaster", Low}}, modules, &cycleData)
+
+		if len(cycleData.targets) == 0 {
+			break
+		}
+		cycleData.cycles++
+	}
+
+	numbers := []int64{}
+	for _, count := range cycleData.counters {
+		numbers = append(numbers, count)
+	}
+	return findLCM(numbers)
+}
+
+func findLCM(numbers []int64) int64 {
+	gcd := func(a, b int64) int64 { //general common divisor
+		for b != 0 {
+			a, b = b, a%b
+		}
+		return a
+	}
+
+	lcm := func(a, b int64) int64 { //least common multiple
+		return a * b / gcd(a, b)
+	}
+
+	result := int64(1)
+	for _, num := range numbers {
+		result = lcm(result, num)
+	}
+	return result
 }
