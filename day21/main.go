@@ -67,6 +67,6 @@ func nextStep(steps int, start aoc.Position, gardens []aoc.Position, visited []a
 
 func Part1(filePath string, steps int) int {
 	start, gardens := parseInput(filePath)
-	visited := nextStep(steps-1, start, gardens, []aoc.Position{})
+	visited := nextStep(steps-1, start, gardens, []aoc.Position{start})
 	return len(visited)
 }
