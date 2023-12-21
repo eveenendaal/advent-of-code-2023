@@ -1,6 +1,7 @@
 package day21
 
 import (
+	"fmt"
 	aoc "github.com/eveenendaal/advent-of-code-2023/aoc"
 )
 
@@ -14,6 +15,7 @@ func parseInput(filePath string) (aoc.Position, []aoc.Position) {
 			switch character {
 			case 'S':
 				start = aoc.Position{Col: x, Row: y}
+				gardens = append(gardens, aoc.Position{Col: x, Row: y})
 			case '.':
 				gardens = append(gardens, aoc.Position{Col: x, Row: y})
 			}
@@ -46,27 +48,58 @@ func findNeighbors(position aoc.Position, positions []aoc.Position) []aoc.Positi
 	return neighbors
 }
 
-func nextStep(steps int, start aoc.Position, gardens []aoc.Position, visited []aoc.Position) []aoc.Position {
-	if steps == 0 {
-		return visited
-	}
+func nextStep(steps int, edges []aoc.Position, gardens []aoc.Position) []aoc.Position {
+	newEdges := make([]aoc.Position, 0)
 
-	neighbors := findNeighbors(start, gardens)
-	for _, neighbor := range neighbors {
-		if !aoc.ContainsPosition(visited, neighbor) {
-			visited = append(visited, neighbor)
+	for _, edge := range edges {
+		neighbors := findNeighbors(edge, gardens)
+		for _, neighbor := range neighbors {
+			if !aoc.ContainsPosition(newEdges, neighbor) {
+				newEdges = append(newEdges, neighbor)
+			}
 		}
 	}
 
-	for _, neighbor := range neighbors {
-		visited = nextStep(steps-1, neighbor, gardens, visited)
+	// printGardens(steps, gardens, newEdges)
+	if steps == 0 {
+		return newEdges
+	} else {
+		return nextStep(steps-1, newEdges, gardens)
+	}
+}
+
+func printGardens(steps int, gardens []aoc.Position, visited []aoc.Position) {
+	maxY := 0
+	maxX := 0
+
+	fmt.Printf("After %d steps:\n", 6-steps)
+
+	for _, garden := range gardens {
+		if garden.Row > maxY {
+			maxY = garden.Row
+		}
+		if garden.Col > maxX {
+			maxX = garden.Col
+		}
 	}
 
-	return visited
+	for y := 0; y <= maxY; y++ {
+		for x := 0; x <= maxX; x++ {
+			if aoc.ContainsPosition(visited, aoc.Position{Col: x, Row: y}) {
+				print("O")
+			} else if aoc.ContainsPosition(gardens, aoc.Position{Col: x, Row: y}) {
+				print(".")
+			} else {
+				print("#")
+			}
+		}
+		println()
+	}
+	println()
 }
 
 func Part1(filePath string, steps int) int {
 	start, gardens := parseInput(filePath)
-	visited := nextStep(steps-1, start, gardens, []aoc.Position{start})
-	return len(visited)
+	edges := nextStep(steps-1, []aoc.Position{start}, gardens)
+	return len(edges)
 }
