@@ -25,47 +25,51 @@ func parseInput(filePath string) (aoc.Position, []aoc.Position) {
 	return start, gardens
 }
 
-func isNeighbor(p aoc.Position, other aoc.Position) bool {
-	if p.Col == other.Col && p.Row == other.Row {
-		return false
+func getRelativePosition(p aoc.Position, maxX int, maxY int) aoc.Position {
+	newCol := p.Col % maxX
+	newRow := p.Row % maxY
+	if newCol < 0 {
+		newCol += maxX
 	}
-	if p.Col == other.Col && (p.Row == other.Row-1 || p.Row == other.Row+1) {
-		return true
+	if newRow < 0 {
+		newRow += maxY
 	}
-	if p.Row == other.Row && (p.Col == other.Col-1 || p.Col == other.Col+1) {
-		return true
-	}
-	return false
+	return aoc.Position{Col: newCol, Row: newRow}
 }
 
-func findNeighbors(position aoc.Position, positions []aoc.Position) []aoc.Position {
+var directions = []aoc.Position{
+	{1, 0},
+	{0, 1},
+	{-1, 0},
+	{0, -1},
+}
+
+func findNeighbors(position aoc.Position, positions []aoc.Position, maxX, maxY int) []aoc.Position {
 	neighbors := make([]aoc.Position, 0)
-	for _, candidate := range positions {
-		if isNeighbor(position, candidate) {
-			neighbors = append(neighbors, candidate)
+	for _, direction := range directions {
+		neighbor := aoc.Position{Col: position.Col + direction.Col, Row: position.Row + direction.Row}
+		relativeNeighborPosition := getRelativePosition(neighbor, maxX, maxY)
+		if aoc.ContainsPosition(positions, relativeNeighborPosition) && !aoc.ContainsPosition(neighbors, neighbor) {
+			neighbors = append(neighbors, neighbor)
 		}
 	}
 	return neighbors
 }
 
-func nextStep(steps int, edges []aoc.Position, gardens []aoc.Position) []aoc.Position {
-	newEdges := make([]aoc.Position, 0)
-
-	for _, edge := range edges {
-		neighbors := findNeighbors(edge, gardens)
-		for _, neighbor := range neighbors {
-			if !aoc.ContainsPosition(newEdges, neighbor) {
-				newEdges = append(newEdges, neighbor)
-			}
+func findMaxes(gardens []aoc.Position) (int, int) {
+	maxX := 0
+	maxY := 0
+	for _, garden := range gardens {
+		nextX := garden.Col + 1
+		nextY := garden.Row + 1
+		if nextY > maxY {
+			maxY = nextY
+		}
+		if nextX > maxX {
+			maxX = nextX
 		}
 	}
-
-	// printGardens(steps, gardens, newEdges)
-	if steps == 0 {
-		return newEdges
-	} else {
-		return nextStep(steps-1, newEdges, gardens)
-	}
+	return maxX, maxY
 }
 
 func printGardens(steps int, gardens []aoc.Position, visited []aoc.Position) {
@@ -98,8 +102,69 @@ func printGardens(steps int, gardens []aoc.Position, visited []aoc.Position) {
 	println()
 }
 
-func Part1(filePath string, steps int) int {
+func Part1(filePath string, totalSteps int) int64 {
 	start, gardens := parseInput(filePath)
-	edges := nextStep(steps-1, []aoc.Position{start}, gardens)
-	return len(edges)
+
+	var visited = make(map[int][]aoc.Position)
+	visited[0] = append(visited[0], start)
+	//found := 0
+	//previousLen := int64(0)
+	maxX, maxY := findMaxes(gardens)
+
+	for move := 0; move < totalSteps; move++ {
+		for _, currentPos := range visited[move] {
+			neighbors := findNeighbors(currentPos, gardens, maxX, maxY)
+			for _, neighbor := range neighbors {
+				if !aoc.ContainsPosition(visited[move+1], neighbor) {
+					visited[move+1] = append(visited[move+1], neighbor)
+				}
+			}
+		}
+		// fmt.Printf("Move %d: %d\n", move, len(visited[move]))
+	}
+
+	sum := int64(len(visited[len(visited)-1]))
+	return sum
+}
+
+func f(x int64, a [3]int64) int64 {
+	b0 := a[0]
+	b1 := a[1] - a[0]
+	b2 := a[2] - a[1]
+	return b0 + b1*x + (x*(x-1)/2)*(b2-b1)
+}
+
+func Part2(filePath string, totalSteps int) int64 {
+	start, gardens := parseInput(filePath)
+	var a [3]int64
+	found := 0
+
+	var visited = make(map[int][]aoc.Position)
+	visited[0] = append(visited[0], start)
+	maxX, maxY := findMaxes(gardens)
+	prevLen := int64(0)
+
+	for move := 0; move < totalSteps; move++ {
+		for _, currentPos := range visited[move] {
+			neighbors := findNeighbors(currentPos, gardens, maxX, maxY)
+			for _, neighbor := range neighbors {
+				if !aoc.ContainsPosition(visited[move+1], neighbor) {
+					visited[move+1] = append(visited[move+1], neighbor)
+				}
+			}
+		}
+
+		if (move % maxX) == (totalSteps % maxX) {
+			fmt.Println("Move", move, len(visited[move]), "prevLen", int64(len(visited[move]))-prevLen)
+			prevLen = int64(len(visited[move]))
+			a[found] = prevLen
+			found++
+		}
+		if found == 3 {
+			break
+		}
+	}
+
+	sum := f(int64(totalSteps/maxX), a)
+	return sum
 }
