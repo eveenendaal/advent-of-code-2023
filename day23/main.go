@@ -5,40 +5,47 @@ import (
 	aoc "github.com/eveenendaal/advent-of-code-2023/aoc"
 )
 
+type Rule int
+
+const (
+	AllowAll Rule = iota
+	AllowRight
+	AllowDown
+)
+
 func (slopeMap SlopeMap) findNeighbors(position aoc.Position) []aoc.Position {
+	Right := aoc.Position{Col: 1, Row: 0}
+	Down := aoc.Position{Col: 0, Row: 1}
+	Left := aoc.Position{Col: -1, Row: 0}
+	Up := aoc.Position{Col: 0, Row: -1}
+
 	directions := []aoc.Position{
-		{Col: 0, Row: -1},
-		{Col: 1, Row: 0},
-		{Col: 0, Row: 1},
-		{Col: -1, Row: 0},
+		Right,
+		Left,
+		Down,
+		Up,
 	}
 
 	var neighbors []aoc.Position
 	for _, direction := range directions {
 		neighbor := aoc.Position{Col: position.Col + direction.Col, Row: position.Row + direction.Row}
-		if slopeMap.isPath(neighbor) && !slopeMap.isUphill(neighbor, direction) {
-			neighbors = append(neighbors, neighbor)
+		if _, ok := slopeMap.path[neighbor]; ok {
+			switch slopeMap.path[neighbor] {
+			case AllowAll:
+				neighbors = append(neighbors, neighbor)
+			case AllowRight:
+				if direction == Right {
+					neighbors = append(neighbors, neighbor)
+				}
+			case AllowDown:
+				if direction == Down {
+					neighbors = append(neighbors, neighbor)
+				}
+			}
 		}
+
 	}
 	return neighbors
-}
-
-func (slopeMap SlopeMap) isUphill(position aoc.Position, direction aoc.Position) bool {
-	if slopeMap.slopes[position] == aoc.Right && direction.Col == -1 {
-		return true
-	} else if slopeMap.slopes[position] == aoc.Down && direction.Row == -1 {
-		return true
-	}
-	return false
-}
-
-func (slopeMap SlopeMap) isPath(position aoc.Position) bool {
-	for _, path := range slopeMap.path {
-		if path == position {
-			return true
-		}
-	}
-	return false
 }
 
 func (slopeMap SlopeMap) Step(visited []aoc.Position, position aoc.Position) []int {
@@ -74,15 +81,13 @@ func (slopeMap SlopeMap) Step(visited []aoc.Position, position aoc.Position) []i
 }
 
 type SlopeMap struct {
-	path   []aoc.Position
-	slopes map[aoc.Position]aoc.Direction
-	start  aoc.Position
-	end    aoc.Position
+	path  map[aoc.Position]Rule
+	start aoc.Position
+	end   aoc.Position
 }
 
 func NewSlopeMap(characters [][]rune) SlopeMap {
-	var path []aoc.Position
-	var slopes = make(map[aoc.Position]aoc.Direction)
+	var path = make(map[aoc.Position]Rule)
 	var start aoc.Position
 	var end aoc.Position
 
@@ -97,28 +102,26 @@ func NewSlopeMap(characters [][]rune) SlopeMap {
 				} else if y == len(characters)-1 {
 					end = aoc.Position{Col: x, Row: y}
 				}
-				path = append(path, aoc.Position{Col: x, Row: y})
+				path[aoc.Position{Col: x, Row: y}] = AllowAll
 			case '>':
 				position := aoc.Position{Col: x, Row: y}
-				path = append(path, position)
-				slopes[position] = aoc.Right
+				path[position] = AllowRight
 			case 'v':
 				position := aoc.Position{Col: x, Row: y}
-				path = append(path, position)
-				slopes[position] = aoc.Down
+				path[position] = AllowDown
 			default:
 				fmt.Errorf("Unknown character: %c\n", character)
 			}
 		}
 	}
 
-	return SlopeMap{path: path, slopes: slopes, start: start, end: end}
+	return SlopeMap{path: path, start: start, end: end}
 }
 
 func Part1(filePath string) int {
 	characters := aoc.ReadFileToCharacters(filePath)
 	slopeMap := NewSlopeMap(characters)
-	results := slopeMap.Step([]aoc.Position{}, slopeMap.path[0])
+	results := slopeMap.Step([]aoc.Position{}, slopeMap.start)
 	maxSteps := 0
 	for _, result := range results {
 		if result > maxSteps {
