@@ -5,7 +5,7 @@ import (
 )
 
 func TestPart1Test(t *testing.T) {
-	expected := 0
+	expected := 74
 	actual := Part1("test.txt")
 	if actual != expected {
 		t.Errorf("Part1() = %d, expected %d", actual, expected)

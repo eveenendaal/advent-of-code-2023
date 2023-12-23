@@ -41,7 +41,8 @@ func (slopeMap SlopeMap) isPath(position aoc.Position) bool {
 	return false
 }
 
-func (slopeMap SlopeMap) Step(visited []aoc.Position, position aoc.Position) int {
+func (slopeMap SlopeMap) Step(visited []aoc.Position, position aoc.Position) []int {
+	var result []int
 	// Mark position as visited
 	visited = append(visited, position)
 
@@ -58,13 +59,18 @@ func (slopeMap SlopeMap) Step(visited []aoc.Position, position aoc.Position) int
 
 	// Recursively step through unvisited neighbors
 	if len(unvisited) == 0 {
-		return len(visited)
+		if position == slopeMap.end {
+			return []int{len(visited)}
+		} else {
+			return []int{}
+		}
 	} else {
 		for _, neighbor := range unvisited {
-			slopeMap.Step(visited, neighbor)
+			paths := slopeMap.Step(visited, neighbor)
+			result = append(result, paths...)
 		}
+		return result
 	}
-
 }
 
 type SlopeMap struct {
@@ -77,6 +83,8 @@ type SlopeMap struct {
 func NewSlopeMap(characters [][]rune) SlopeMap {
 	var path []aoc.Position
 	var slopes = make(map[aoc.Position]aoc.Direction)
+	var start aoc.Position
+	var end aoc.Position
 
 	for y, row := range characters {
 		for x, character := range row {
@@ -84,6 +92,11 @@ func NewSlopeMap(characters [][]rune) SlopeMap {
 			case '#':
 				// Do nothing
 			case '.':
+				if y == 0 {
+					start = aoc.Position{Col: x, Row: y}
+				} else if y == len(characters)-1 {
+					end = aoc.Position{Col: x, Row: y}
+				}
 				path = append(path, aoc.Position{Col: x, Row: y})
 			case '>':
 				position := aoc.Position{Col: x, Row: y}
@@ -99,12 +112,18 @@ func NewSlopeMap(characters [][]rune) SlopeMap {
 		}
 	}
 
-	return SlopeMap{path: path, slopes: slopes}
+	return SlopeMap{path: path, slopes: slopes, start: start, end: end}
 }
 
 func Part1(filePath string) int {
 	characters := aoc.ReadFileToCharacters(filePath)
 	slopeMap := NewSlopeMap(characters)
-	slopeMap.Step([]aoc.Position{}, slopeMap.path[0])
-	return len(characters)
+	results := slopeMap.Step([]aoc.Position{}, slopeMap.path[0])
+	maxSteps := 0
+	for _, result := range results {
+		if result > maxSteps {
+			maxSteps = result
+		}
+	}
+	return maxSteps
 }
