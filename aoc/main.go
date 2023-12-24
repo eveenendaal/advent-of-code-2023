@@ -175,6 +175,15 @@ func (p Position) move(direction Direction, distance int) Position {
 	panic("invalid direction")
 }
 
+func (p Position) Neighbors4() []Position {
+	return []Position{
+		{Col: p.Col, Row: p.Row - 1},
+		{Col: p.Col, Row: p.Row + 1},
+		{Col: p.Col - 1, Row: p.Row},
+		{Col: p.Col + 1, Row: p.Row},
+	}
+}
+
 // FindLeastCommonMultiple Find the least common multiple of a slice of numbers
 func FindLeastCommonMultiple(numbers []int64) int64 {
 	gcd := func(a, b int64) int64 { //general common divisor
