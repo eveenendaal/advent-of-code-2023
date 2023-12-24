@@ -60,21 +60,21 @@ func exploreSinglePath(grid Grid, previous aoc.Position, current aoc.Position, c
 	return PosCost{pos: current, cost: cost}, true
 }
 
-func explore(neighbors Graph, p, goal aoc.Position, visited map[aoc.Position]bool, cost int, maxCost int) int {
-	if p == goal {
+func explore(neighbors Graph, point, goal aoc.Position, visited map[aoc.Position]bool, cost int, maxCost int) int {
+	if point == goal {
 		if cost > maxCost {
 			maxCost = cost
 		}
 		return maxCost
 	}
 
-	visited[p] = true
-	for _, pc := range neighbors[p] {
+	visited[point] = true
+	for _, pc := range neighbors[point] {
 		if !visited[pc.pos] {
 			maxCost = explore(neighbors, pc.pos, goal, visited, cost+pc.cost, maxCost)
 		}
 	}
-	visited[p] = false
+	visited[point] = false
 	return maxCost
 }
 
@@ -116,9 +116,9 @@ func buildGraph(grid Grid, start aoc.Position, part2 bool) Graph {
 	return res
 }
 
-func solve(filPath string, part2 bool) int {
+func solve(filepath string, part2 bool) int {
 	grid := make(map[aoc.Position]uint8)
-	characters := aoc.ReadFileToCharacters(filPath)
+	characters := aoc.ReadFileToCharacters(filepath)
 	for y, row := range characters {
 		for x, c := range row {
 			grid[aoc.Position{Col: x, Row: y}] = uint8(c)
