@@ -1,143 +1,153 @@
 package day23
 
 import (
-	"container/list"
-	"fmt"
+	_ "embed"
 	aoc "github.com/eveenendaal/advent-of-code-2023/aoc"
+	"math"
+	"slices"
 )
 
-func (slopeMap SlopeMap) findNeighbors(position aoc.Position) chan aoc.Position {
-	Right := aoc.Position{Col: 1, Row: 0}
-	Down := aoc.Position{Col: 0, Row: 1}
-	Left := aoc.Position{Col: -1, Row: 0}
-	Up := aoc.Position{Col: 0, Row: -1}
-
-	directions := []aoc.Position{
-		Up,
-		Right,
-		Left,
-		Down,
-	}
-
-	neighbors := make(chan aoc.Position)
-	go func() {
-		defer close(neighbors)
-
-		switch slopeMap.path[position] {
-		case '^':
-			neighbors <- aoc.Position{position.Col, position.Row - 1}
-			return
-		case '>':
-			neighbors <- aoc.Position{position.Col + 1, position.Row}
-			return
-		case 'v':
-			neighbors <- aoc.Position{position.Col, position.Row + 1}
-			return
-		case '<':
-			neighbors <- aoc.Position{position.Col - 1, position.Row}
-			return
-		}
-
-		for _, direction := range directions {
-			neighbor := aoc.Position{position.Col + direction.Col, position.Row + direction.Row}
-			if _, ok := slopeMap.path[neighbor]; !ok {
-				continue
-			}
-			neighbors <- neighbor
-		}
-	}()
-	return neighbors
+type PosCost struct {
+	pos  aoc.Position
+	cost int
 }
 
-func findTheLongestPath(slopeMap SlopeMap) int {
-	start := slopeMap.start
-	end := slopeMap.end
+type Grid map[aoc.Position]uint8
 
-	toCheck := list.New()
-	toCheck.PushBack([3]interface{}{start, make(map[aoc.Position]struct{}), 0})
+func GridBounds(grid map[aoc.Position]uint8) (minX, maxX, minY, maxY int) {
+	minX, maxX = math.MaxInt, math.MinInt
+	minY, maxY = math.MaxInt, math.MinInt
+	for p := range grid {
+		minX = min(p.Col, minX)
+		maxX = max(p.Col, maxX)
+		minY = min(p.Row, minY)
+		maxY = max(p.Row, maxY)
+	}
+	return minX, maxX, minY, maxY
+}
 
-	costSoFar := make(map[aoc.Position]int)
-	costSoFar[start] = 0
+func exploreSinglePath(grid Grid, previous aoc.Position, current aoc.Position, cost int, part2 bool) (PosCost, bool) {
+	if c, ok := grid[current]; ok && c != '#' {
+		var cpt int
+		for _, ne := range Neighbors4(current) {
+			if c, ok := grid[ne]; ok && c != '#' {
+				cpt++
+			}
+		}
+		if cpt > 2 {
+			return PosCost{pos: current, cost: cost}, true
+		}
+	}
 
-	for toCheck.Len() > 0 {
-		element := toCheck.Remove(toCheck.Back()).([3]interface{})
-		nextPosition := element[0].(aoc.Position)
-		path := element[1].(map[aoc.Position]struct{})
+	if !part2 {
+		// cut branches in part1
+		if c, ok := grid[current]; ok && c != '.' {
+			if current.Col > previous.Col && c != '>' ||
+				current.Col < previous.Col && c != '<' ||
+				current.Row > previous.Row && c != 'v' ||
+				current.Row < previous.Row && c != '^' {
+				return PosCost{}, false
+			}
+		}
+	}
 
-		if nextPosition == end {
+	for _, n := range Neighbors4(current) {
+		if c, ok := grid[n]; ok && c != '#' && n != previous {
+			return exploreSinglePath(grid, current, n, cost+1, part2)
+		}
+	}
+
+	return PosCost{pos: current, cost: cost}, true
+}
+
+func explore(neighbors Graph, p, goal aoc.Position, visited map[aoc.Position]bool, cost int, maxCost int) int {
+	if p == goal {
+		if cost > maxCost {
+			maxCost = cost
+		}
+		return maxCost
+	}
+
+	visited[p] = true
+	for _, pc := range neighbors[p] {
+		if !visited[pc.pos] {
+			maxCost = explore(neighbors, pc.pos, goal, visited, cost+pc.cost, maxCost)
+		}
+	}
+	visited[p] = false
+	return maxCost
+}
+
+type Graph map[aoc.Position][]PosCost
+
+func Neighbors4(p aoc.Position) []aoc.Position {
+	return []aoc.Position{
+		{Col: p.Col, Row: p.Row - 1},
+		{Col: p.Col, Row: p.Row + 1},
+		{Col: p.Col - 1, Row: p.Row},
+		{Col: p.Col + 1, Row: p.Row},
+	}
+}
+
+func buildGraph(grid Grid, start aoc.Position, part2 bool) Graph {
+	var res = make(map[aoc.Position][]PosCost)
+
+	var todo = []aoc.Position{}
+	todo = append(todo, start)
+
+	for len(todo) > 0 {
+		p := todo[0]
+		todo = todo[1:]
+		if c, ok := grid[p]; !ok || c == '#' {
 			continue
 		}
-
-		for newPoint := range slopeMap.findNeighbors(nextPosition) {
-			newCost := costSoFar[nextPosition] + 1
-
-			if _, exists := path[newPoint]; exists {
+		for _, n := range Neighbors4(p) {
+			if c, ok := grid[n]; !ok || c == '#' {
 				continue
 			}
-
-			if _, exists := costSoFar[newPoint]; !exists || newCost > costSoFar[newPoint] {
-				costSoFar[newPoint] = newCost
-
-				newPath := make(map[aoc.Position]struct{})
-				for k := range path {
-					newPath[k] = struct{}{}
-				}
-				newPath[newPoint] = struct{}{}
-
-				toCheck.PushFront([3]interface{}{newPoint, newPath, newCost})
+			pc, ok := exploreSinglePath(grid, p, n, 1, part2)
+			if ok && !slices.Contains(res[p], pc) {
+				res[p] = append(res[p], pc)
+				todo = append(todo, pc.pos)
 			}
 		}
 	}
 
-	return costSoFar[end]
+	return res
 }
 
-type SlopeMap struct {
-	path  map[aoc.Position]rune
-	start aoc.Position
-	end   aoc.Position
-}
-
-func NewSlopeMap(characters [][]rune) SlopeMap {
-	var path = make(map[aoc.Position]rune)
-	var start aoc.Position
-	var end aoc.Position
-
+func solve(filPath string, part2 bool) int {
+	grid := make(map[aoc.Position]uint8)
+	characters := aoc.ReadFileToCharacters(filPath)
 	for y, row := range characters {
-		for x, character := range row {
-			switch character {
-			case '#':
-				// Do nothing
-			case '.':
-				if y == 0 {
-					start = aoc.Position{Col: x, Row: y}
-				} else if y == len(characters)-1 {
-					end = aoc.Position{Col: x, Row: y}
-				}
-				path[aoc.Position{Col: x, Row: y}] = character
-			case '>':
-				position := aoc.Position{Col: x, Row: y}
-				path[position] = character
-			case 'v':
-				position := aoc.Position{Col: x, Row: y}
-				path[position] = character
-			default:
-				fmt.Errorf("Unknown character: %c\n", character)
-			}
+		for x, c := range row {
+			grid[aoc.Position{Col: x, Row: y}] = uint8(c)
 		}
 	}
 
-	return SlopeMap{path: path, start: start, end: end}
+	minX, maxX, minY, maxY := GridBounds(grid)
+	start := aoc.Position{Col: minX + 1, Row: minY}
+	end := aoc.Position{Col: maxX - 1, Row: maxY}
+
+	neighbors := buildGraph(grid, start, part2)
+
+	var goal = end
+	var path = 0
+
+	if part2 && len(neighbors[end]) > 0 {
+		// skip last path
+		goal = neighbors[end][0].pos
+		path = neighbors[end][0].cost
+	}
+
+	visited := make(map[aoc.Position]bool)
+	return explore(neighbors, start, goal, visited, path, 0)
 }
 
-type Progress struct {
-	position aoc.Position
-	path     map[aoc.Position]struct{}
+func Part1(filPath string) int {
+	return solve(filPath, false)
 }
 
-func Part1(filePath string) int {
-	characters := aoc.ReadFileToCharacters(filePath)
-	slopeMap := NewSlopeMap(characters)
-	fmt.Printf("Start: %v, Stop %v\n", slopeMap.start, slopeMap.end)
-	return findTheLongestPath(slopeMap)
+func Part2(filPath string) int {
+	return solve(filPath, true)
 }
