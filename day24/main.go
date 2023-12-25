@@ -4,6 +4,7 @@ import (
 	"fmt"
 	aoc "github.com/eveenendaal/advent-of-code-2023/aoc"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -223,20 +224,78 @@ func getRockVelocity(velocities map[int][]int) int {
 	return possibleV[0]
 }
 
-func findIntersectingVector3D(vectors []*Hailstone) (Vector3D, bool) {
-	for i := 0; i < len(vectors); i++ {
-		for j := i + 1; j < len(vectors); j++ {
-			P1 := vectors[i].point
-			D1 := vectors[i].velocity // Assuming direction vector for simplicity
-			P2 := vectors[j].point
-			D2 := vectors[j].velocity // Assuming direction vector for simplicity
+func findMatchingVel(dvel, pv int) []int {
+	match := []int{}
+	for v := -1000; v < 1000; v++ {
+		if v != pv && dvel%(v-pv) == 0 {
+			match = append(match, v)
+		}
+	}
+	return match
+}
 
-			_, ok := IntersectionPoint3D(P1, P2, D1, D2)
-			if ok {
-				return P1, true
+func getIntersect(a, b []int) []int {
+	result := []int{}
+	for _, val := range a {
+		if slices.Contains(b, val) {
+			result = append(result, val)
+		}
+	}
+	return result
+}
+
+func findIntersectingVector3D(hailStones []*Hailstone) (Vector3D, bool) {
+	maybeX, maybeY, maybeZ := []int{}, []int{}, []int{}
+	for i := 0; i < len(hailStones)-1; i++ {
+		for j := i + 1; j < len(hailStones); j++ {
+			stoneA, stoneB := hailStones[i], hailStones[j]
+			stoneAVelocity := stoneA.velocity
+			stoneBVelocity := stoneB.velocity
+			stoneAPoint := stoneA.point
+			stoneBPoint := stoneB.point
+
+			if stoneAVelocity.x == stoneBVelocity.x {
+				nextMaybe := findMatchingVel(int(stoneBPoint.x-stoneAPoint.x), int(stoneAVelocity.x))
+				if len(maybeX) == 0 {
+					maybeX = nextMaybe
+				} else {
+					maybeX = getIntersect(maybeX, nextMaybe)
+				}
+			}
+			if stoneAVelocity.y == stoneBVelocity.y {
+				nextMaybe := findMatchingVel(int(stoneBPoint.y-stoneAPoint.y), int(stoneAVelocity.y))
+				if len(maybeY) == 0 {
+					maybeY = nextMaybe
+				} else {
+					maybeY = getIntersect(maybeY, nextMaybe)
+				}
+			}
+			if stoneAVelocity.z == stoneBVelocity.z {
+				nextMaybe := findMatchingVel(int(stoneBPoint.z-stoneAPoint.z), int(stoneAVelocity.z))
+				if len(maybeZ) == 0 {
+					maybeZ = nextMaybe
+				} else {
+					maybeZ = getIntersect(maybeZ, nextMaybe)
+				}
 			}
 		}
 	}
+
+	if len(maybeX) == len(maybeY) && len(maybeY) == len(maybeZ) && len(maybeZ) == 1 {
+		// only one possible velocity in all dimensions
+		rockVel := Vector3D{float64(maybeX[0]), float64(maybeY[0]), float64(maybeZ[0])}
+		hailStoneA, hailStoneB := hailStones[0], hailStones[1]
+		mA := (hailStoneA.velocity.y - rockVel.y) / (hailStoneA.velocity.x - rockVel.x)
+		mB := (hailStoneB.velocity.y - rockVel.y) / (hailStoneB.velocity.x - rockVel.x)
+		cA := hailStoneA.point.y - (mA * hailStoneA.point.x)
+		cB := hailStoneB.point.y - (mB * hailStoneB.point.x)
+		xPos := (cB - cA) / (mA - mB)
+		yPos := mA*xPos + cA
+		time := (xPos - hailStoneA.point.x) / (hailStoneA.velocity.x - rockVel.x)
+		zPos := hailStoneA.point.z + (hailStoneA.velocity.z-rockVel.z)*time
+		return Vector3D{xPos, yPos, zPos}, true
+	}
+
 	return Vector3D{}, false
 }
 
@@ -255,6 +314,5 @@ func Part2(filePath string) int {
 	} else {
 		fmt.Println("No intersection found")
 	}
-	result := answer.x + answer.y + answer.z
-	return int(result)
+	return int(answer.x + answer.y + answer.z)
 }
