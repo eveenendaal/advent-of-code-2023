@@ -15,3 +15,10 @@ func TestPart1Solution(t *testing.T) {
 		t.Errorf("Expected 13910, got %d", result)
 	}
 }
+
+func TestPart2Test(t *testing.T) {
+	result := Part2("test.txt")
+	if result != 47 {
+		t.Errorf("Expected 47, got %d", result)
+	}
+}

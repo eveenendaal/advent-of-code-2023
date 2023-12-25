@@ -198,17 +198,63 @@ func Part1(filePath string, minRange, maxRange int64) int {
 	return intersections
 }
 
-func main() {
-	P1 := Vector3D{1, 0, 0}
-	D1 := Vector3D{1, 1, 1}
-
-	P2 := Vector3D{0, 1, 0}
-	D2 := Vector3D{-1, -1, -1}
-
-	P, ok := IntersectionPoint3D(P1, P2, D1, D2)
-	if ok {
-		fmt.Printf("Intersection point: %v\n", P)
-	} else {
-		fmt.Println("No intersection")
+func getRockVelocity(velocities map[int][]int) int {
+	possibleV := make([]int, 0)
+	for x := -1000; x <= 1000; x++ {
+		possibleV = append(possibleV, x)
 	}
+
+	for vel, values := range velocities {
+		if len(values) < 2 {
+			continue
+		}
+
+		newPossibleV := make([]int, 0)
+		for _, possible := range possibleV {
+			// Add a check to ensure that the denominator is not zero
+			if possible-vel != 0 && (values[0]-values[1])%(possible-vel) == 0 {
+				newPossibleV = append(newPossibleV, possible)
+			}
+		}
+
+		possibleV = newPossibleV
+	}
+
+	return possibleV[0]
+}
+
+func findIntersectingVector3D(vectors []*Hailstone) (Vector3D, bool) {
+	for i := 0; i < len(vectors); i++ {
+		for j := i + 1; j < len(vectors); j++ {
+			P1 := vectors[i].point
+			D1 := vectors[i].velocity // Assuming direction vector for simplicity
+			P2 := vectors[j].point
+			D2 := vectors[j].velocity // Assuming direction vector for simplicity
+
+			_, ok := IntersectionPoint3D(P1, P2, D1, D2)
+			if ok {
+				return P1, true
+			}
+		}
+	}
+	return Vector3D{}, false
+}
+
+func Part2(filePath string) int {
+	lines := aoc.ReadFileToLines(filePath)
+	hailstones := make([]*Hailstone, 0)
+
+	for _, line := range lines {
+		hailstone := NewHailstone(line)
+		hailstones = append(hailstones, hailstone)
+	}
+
+	answer, found := findIntersectingVector3D(hailstones)
+	if found {
+		fmt.Printf("Found intersection point: %v\n", answer)
+	} else {
+		fmt.Println("No intersection found")
+	}
+	result := answer.x + answer.y + answer.z
+	return int(result)
 }
