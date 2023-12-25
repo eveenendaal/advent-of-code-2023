@@ -131,7 +131,32 @@ func IntersectionPoint3D(P1, P2, D1, D2 Vector3D) (Vector3D, bool) {
 	return P, true
 }
 
-func Part1(filePath string) int {
+func isInFuture(hailstone Hailstone, point Vector2D) bool {
+	start := hailstone.point.to2D()
+	direction := hailstone.velocity.to2D()
+
+	if direction.x > 0 {
+		if point.x < start.x {
+			return false
+		}
+	} else {
+		if point.x > start.x {
+			return false
+		}
+	}
+	if direction.y > 0 {
+		if point.y < start.y {
+			return false
+		}
+	} else {
+		if point.y > start.y {
+			return false
+		}
+	}
+	return true
+}
+
+func Part1(filePath string, minRange, maxRange int64) int {
 	lines := aoc.ReadFileToLines(filePath)
 	hailstones := make([]*Hailstone, 0)
 
@@ -140,10 +165,10 @@ func Part1(filePath string) int {
 		hailstones = append(hailstones, hailstone)
 	}
 
-	minX := float64(7)
-	maxX := float64(27)
-	minY := float64(7)
-	maxY := float64(27)
+	minX := float64(minRange)
+	maxX := float64(maxRange)
+	minY := float64(minRange)
+	maxY := float64(maxRange)
 
 	intersections := 0
 	// compare every pair of hailstones
@@ -154,8 +179,13 @@ func Part1(filePath string) int {
 			if ok {
 				// if point with x and y coordinates is within the bounds of the hailstones, there is an intersection
 				if P.x >= minX && P.x <= maxX && P.y >= minY && P.y <= maxY {
-					intersections++
-					fmt.Printf("Intersection point: %v\n", P)
+					// if the intersection point is within the bounds of the hailstones, there is an intersection
+					if isInFuture(*hailstones[i], P) && isInFuture(*hailstones[j], P) {
+						intersections++
+						fmt.Printf("Intersection point: %v\n", P)
+					} else {
+						fmt.Println("Intersection outside range")
+					}
 				} else {
 					fmt.Println("Intersection outside range")
 				}
