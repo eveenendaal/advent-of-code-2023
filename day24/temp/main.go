@@ -1,139 +1,170 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 )
 
+func getLines(file string) []string {
+	data, _ := os.ReadFile(file)
+	return strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+}
+
+func commaSepToIntArr(line string) []int {
+	data := strings.Split(line, ",")
+	result := make([]int, len(data))
+	for i, val := range data {
+		num, _ := strconv.Atoi(strings.TrimSpace(val))
+		result[i] = num
+	}
+	return result
+}
+
+func day24() {
+	lines := getLines("input.txt")
+	hailStones := parseHailstones(lines)
+
+	areaMin, areaMax := float64(200000000000000), float64(400000000000000)
+	intersectCount := 0
+	for i := 0; i < len(hailStones)-1; i++ {
+		for j := i + 1; j < len(hailStones); j++ {
+			a, b := hailStones[i], hailStones[j]
+			if point, does := hailstonesIntersect(a, b); does {
+				if point.x >= areaMin && point.x <= areaMax &&
+					point.y >= areaMin && point.y <= areaMax {
+					dx := point.x - a.pos.x
+					dy := point.y - a.pos.y
+					if (dx > 0) == (a.vel.x > 0) && (dy > 0) == (a.vel.y > 0) {
+						dx = point.x - b.pos.x
+						dy = point.y - b.pos.y
+						if (dx > 0) == (b.vel.x > 0) && (dy > 0) == (b.vel.y > 0) {
+							intersectCount++
+						}
+					}
+				}
+			}
+		}
+	}
+
+	var result = intersectCount
+	fmt.Println("Day 24 Part 1 Result: ", result)
+
+	maybeX, maybeY, maybeZ := []int{}, []int{}, []int{}
+	for i := 0; i < len(hailStones)-1; i++ {
+		for j := i + 1; j < len(hailStones); j++ {
+			a, b := hailStones[i], hailStones[j]
+			if a.vel.x == b.vel.x {
+				nextMaybe := findMatchingVel(int(b.pos.x-a.pos.x), int(a.vel.x))
+				if len(maybeX) == 0 {
+					maybeX = nextMaybe
+				} else {
+					maybeX = getIntersect(maybeX, nextMaybe)
+				}
+			}
+			if a.vel.y == b.vel.y {
+				nextMaybe := findMatchingVel(int(b.pos.y-a.pos.y), int(a.vel.y))
+				if len(maybeY) == 0 {
+					maybeY = nextMaybe
+				} else {
+					maybeY = getIntersect(maybeY, nextMaybe)
+				}
+			}
+			if a.vel.z == b.vel.z {
+				nextMaybe := findMatchingVel(int(b.pos.z-a.pos.z), int(a.vel.z))
+				if len(maybeZ) == 0 {
+					maybeZ = nextMaybe
+				} else {
+					maybeZ = getIntersect(maybeZ, nextMaybe)
+				}
+			}
+		}
+	}
+
+	var result2 = 0
+	if len(maybeX) == len(maybeY) && len(maybeY) == len(maybeZ) && len(maybeZ) == 1 {
+		// only one possible velocity in all dimensions
+		rockVel := Vector3{float64(maybeX[0]), float64(maybeY[0]), float64(maybeZ[0])}
+		hailStoneA, hailStoneB := hailStones[0], hailStones[1]
+		mA := (hailStoneA.vel.y - rockVel.y) / (hailStoneA.vel.x - rockVel.x)
+		mB := (hailStoneB.vel.y - rockVel.y) / (hailStoneB.vel.x - rockVel.x)
+		cA := hailStoneA.pos.y - (mA * hailStoneA.pos.x)
+		cB := hailStoneB.pos.y - (mB * hailStoneB.pos.x)
+		xPos := (cB - cA) / (mA - mB)
+		yPos := mA*xPos + cA
+		time := (xPos - hailStoneA.pos.x) / (hailStoneA.vel.x - rockVel.x)
+		zPos := hailStoneA.pos.z + (hailStoneA.vel.z-rockVel.z)*time
+		result2 = int(xPos + yPos + zPos)
+	}
+
+	fmt.Println("Day 24 Part 2 Result: ", result2)
+}
+
+func findMatchingVel(dvel, pv int) []int {
+	match := []int{}
+	for v := -1000; v < 1000; v++ {
+		if v != pv && dvel%(v-pv) == 0 {
+			match = append(match, v)
+		}
+	}
+	return match
+}
+
+func getIntersect(a, b []int) []int {
+	result := []int{}
+	for _, val := range a {
+		if slices.Contains(b, val) {
+			result = append(result, val)
+		}
+	}
+	return result
+}
+
+type Vector3 struct {
+	x, y, z float64
+}
+
+type Vector2 struct {
+	x, y float64
+}
+
 type Hailstone struct {
-	px, py, pz, vx, vy, vz int
+	pos, vel Vector3
 }
 
-var hailstones []Hailstone
-var velocitiesX = make(map[int][]int)
-var velocitiesY = make(map[int][]int)
-var velocitiesZ = make(map[int][]int)
+func hailstonesIntersect(a, b Hailstone) (Vector2, bool) {
+	a2 := Vector2{a.vel.x, a.vel.y}
+	b2 := Vector2{b.vel.x, b.vel.y}
+	d2 := Vector2{b.pos.x - a.pos.x, b.pos.y - a.pos.y}
 
-func getRockVelocity(velocities map[int][]int) int {
-	possibleV := make([]int, 0)
-	for x := -1000; x <= 1000; x++ {
-		possibleV = append(possibleV, x)
+	det := vectorCross(a2, b2)
+	// parallel
+	if det == 0 {
+		return Vector2{-1, -1}, false
 	}
 
-	for vel, values := range velocities {
-		if len(values) < 2 {
-			continue
-		}
-
-		newPossibleV := make([]int, 0)
-		for _, possible := range possibleV {
-			// Add a check to ensure that the denominator is not zero
-			if possible-vel != 0 && (values[0]-values[1])%(possible-vel) == 0 {
-				newPossibleV = append(newPossibleV, possible)
-			}
-		}
-
-		possibleV = newPossibleV
-	}
-
-	return possibleV[0]
+	u := vectorCross(d2, b2) / det
+	return Vector2{a.pos.x + a.vel.x*u, a.pos.y + a.vel.y*u}, true
 }
 
-func CoordinatesOfInitialPosition() {
+func vectorCross(a, b Vector2) float64 {
+	return (a.x * b.y) - (a.y * b.x)
+}
 
-	file, err := os.Open("input.txt")
-	if err != nil {
-		panic(err)
+func parseHailstones(lines []string) []Hailstone {
+	hailStones := make([]Hailstone, 0, len(lines))
+	for _, line := range lines {
+		split := strings.Split(line, " @ ")
+		coords := commaSepToIntArr(split[0])
+		vels := commaSepToIntArr(split[1])
+		hailStone := Hailstone{Vector3{float64(coords[0]), float64(coords[1]), float64(coords[2])}, Vector3{float64(vels[0]), float64(vels[1]), float64(vels[2])}}
+		hailStones = append(hailStones, hailStone)
 	}
-	defer file.Close()
+	return hailStones
+}
 
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		parts := strings.Split(line, " @ ")
-		positions := parts[0]
-		velocity := parts[1]
-
-		pos := strings.Split(positions, ", ")
-		px, _ := strconv.Atoi(pos[0])
-		py, _ := strconv.Atoi(pos[1])
-		pz, _ := strconv.Atoi(pos[2])
-
-		vel := strings.Split(velocity, ", ")
-		vx, _ := strconv.Atoi(vel[0])
-		vy, _ := strconv.Atoi(vel[1])
-		vz, _ := strconv.Atoi(vel[2])
-
-		if _, ok := velocitiesX[vx]; !ok {
-			velocitiesX[vx] = []int{px}
-		} else {
-			velocitiesX[vx] = append(velocitiesX[vx], px)
-		}
-
-		if _, ok := velocitiesY[vy]; !ok {
-			velocitiesY[vy] = []int{py}
-		} else {
-			velocitiesY[vy] = append(velocitiesY[vy], py)
-		}
-
-		if _, ok := velocitiesZ[vz]; !ok {
-			velocitiesZ[vz] = []int{pz}
-		} else {
-			velocitiesZ[vz] = append(velocitiesZ[vz], pz)
-		}
-
-		hailstones = append(hailstones, Hailstone{px, py, pz, vx, vy, vz})
-	}
-
-	possibleVX := make([]int, 2001) // Create a slice with length 2001
-	for x := -1000; x <= 1000; x++ {
-		possibleVX[x+1000] = x
-	}
-
-	rvx := getRockVelocity(velocitiesX)
-	rvy := getRockVelocity(velocitiesY)
-	rvz := getRockVelocity(velocitiesZ)
-
-	results := make(map[int]int)
-	for i := 0; i < len(hailstones); i++ {
-		for j := i + 1; j < len(hailstones); j++ {
-			stoneA := hailstones[i]
-			stoneB := hailstones[j]
-
-			ma := float64(stoneA.vy-rvy) / float64(stoneA.vx-rvx)
-			mb := float64(stoneB.vy-rvy) / float64(stoneB.vx-rvx)
-
-			ca := float64(stoneA.py) - ma*float64(stoneA.px)
-			cb := float64(stoneB.py) - mb*float64(stoneB.px)
-
-			rpx := int((cb - ca) / (ma - mb))
-			rpy := int(ma*float64(rpx) + ca)
-
-			time := int((rpx - stoneA.px) / int(float64(stoneA.vx-rvx)))
-			rpz := stoneA.pz + (stoneA.vz-rvz)*time
-
-			result := rpx + rpy + rpz
-			if _, ok := results[result]; !ok {
-				results[result] = 1
-			} else {
-				results[result]++
-			}
-		}
-	}
-
-	var keys []int
-	for k := range results {
-		keys = append(keys, k)
-	}
-
-	sort.Slice(keys, func(i, j int) bool {
-		return results[keys[i]] > results[keys[j]]
-	})
-
-	fmt.Println(keys[0])
+func main() {
+	day24()
 }
